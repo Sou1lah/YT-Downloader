@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>YouTube Downloader</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            margin-top: 100px;
+        }
+
+        input, select, button {
+            padding: 10px;
+            width: 350px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            margin-bottom: 30px;
+        }
+
+        #progress-label {
+            margin-top: 5px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        #download-info {
+            margin-top: 10px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎥 YouTube Downloader</h1>
+
+    <form method="POST" action="/download">
+        <input type="text" name="url" placeholder="Paste YouTube URL here" required><br>
+
+        <select name="download_type">
+            <option value="video" selected>Video</option>
+            <option value="audio">Audio</option>
+        </select><br>
+
+        <select name="quality">
+            <option value="360">360p</option>
+            <option value="720" selected>720p</option>
+            <option value="1080">1080p</option>
+            <option value="160">160k (Audio)</option>
+            <option value="256">256k (Audio)</option>
+            <option value="320">320k (Audio)</option>
+        </select><br>
+
+        <button type="submit">Download</button>
+    </form>
+
+    <div id="progress-box" style="margin-top: 20px;">
+        <progress id="bar" value="0" max="100" style="width: 400px;"></progress>
+        <div id="progress-label">0%</div>
+        <div id="download-info"></div>
+    </div>
+
+    <script>
+        const poll = () => {
+            fetch('/progress')
+                .then(res => res.json())
+                .then(data => {
+                    const raw = data.progress || "0%";
+                    const percent = parseFloat(raw.replace('%', '')) || 0;
+
+                    const bar = document.getElementById("bar");
+                    const label = document.getElementById("progress-label");
+                    const info = document.getElementById("download-info");
+
+                    bar.value = percent;
+                    label.innerText = raw;
+
+                    if (data.title) {
+                        info.innerText = `📺 ${data.title}  (${data.current} / ${data.total})`;
+                    }
+
+                    if (data.status === "finished" && data.current === data.total) {
+                        label.style.color = "green";
+                        alert("✅ All downloads complete!");
+                    } else {
+                        label.style.color = "#333";
+                        setTimeout(poll, 500);
+                    }
+                })
+                .catch(err => {
+                    alert("❌ Error while polling: " + err);
+                });
+        };
+
+        document.querySelector("form").addEventListener("submit", (e) => {
+            e.preventDefault();
+
+            const form = e.target;
+            const formData = new FormData(form);
+
+            document.getElementById("bar").value = 0;
+            document.getElementById("progress-label").innerText = "0%";
+            document.getElementById("progress-label").style.color = "#333";
+            document.getElementById("download-info").innerText = "";
+
+            setTimeout(poll, 500);
+
+            fetch("/download", {
+                method: "POST",
+                body: formData,
+            })
+            .then(res => {
+                if (!res.ok) throw new Error("Download failed");
+                return res.text();
+            })
+            .catch(err => {
+                alert("❌ Download error: " + err);
+            });
+        });
+    </script>
+</body>
+</html>
