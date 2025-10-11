@@ -32,30 +32,44 @@
             font-size: 16px;
             font-weight: bold;
         }
+        
+        .info-text {
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
     <h1>🎥 YouTube Downloader</h1>
 
     <form method="POST" action="/download">
-        <input type="text" name="url" placeholder="Paste YouTube URL here" required><br>
+        <input type="text" name="url" placeholder="Paste YouTube URL or Playlist URL here" required><br>
 
-        <select name="download_type">
+        <select name="download_type" id="download_type">
             <option value="video" selected>Video</option>
             <option value="audio">Audio</option>
         </select><br>
 
-        <select name="quality">
-            <option value="360">360p</option>
-            <option value="720" selected>720p</option>
-            <option value="1080">1080p</option>
-            <option value="160">160k (Audio)</option>
-            <option value="256">256k (Audio)</option>
-            <option value="320">320k (Audio)</option>
+        <select name="quality" id="quality">
+            <option value="360" data-type="video">360p</option>
+            <option value="720" data-type="video" selected>720p</option>
+            <option value="1080" data-type="video">1080p</option>
+            <option value="160" data-type="audio">160k (Audio)</option>
+            <option value="256" data-type="audio">256k (Audio)</option>
+            <option value="320" data-type="audio">320k (Audio)</option>
         </select><br>
 
-        <button type="submit">Download</button>
+        <button type="submit" id="download-btn">Download</button>
+        <button type="button" id="cancel-btn" style="display:none;">Cancel</button>
     </form>
+
+    <div class="info-text">
+        Supports: Single videos and playlists<br>
+        Downloads to: ~/Music/YT-Downloader/
+    </div>
+
+    <div id="loading" style="display:none;margin:10px;font-weight:bold;">⏳ Loading...</div>
 
     <div id="progress-box" style="margin-top: 20px;">
         <progress id="bar" value="0" max="100" style="width: 400px;"></progress>
@@ -64,12 +78,80 @@
     </div>
 
     <script>
+        // Show only relevant quality options
+        const downloadType = document.getElementById("download_type");
+        const quality = document.getElementById("quality");
+
+        function filterQualityOptions() {
+            const type = downloadType.value;
+            Array.from(quality.options).forEach(opt => {
+                opt.style.display = (opt.getAttribute("data-type") === type) ? "" : "none";
+            });
+            // Select first visible option
+            for (let opt of quality.options) {
+                if (opt.style.display !== "none") {
+                    quality.value = opt.value;
+                    break;
+                }
+            }
+        }
+        downloadType.addEventListener("change", filterQualityOptions);
+        window.addEventListener("DOMContentLoaded", filterQualityOptions);
+
+        let cancelRequested = false;
+
+        document.querySelector("form").addEventListener("submit", (e) => {
+            e.preventDefault();
+
+            cancelRequested = false;
+            document.getElementById("cancel-btn").style.display = "";
+            document.getElementById("download-btn").disabled = true;
+
+            const form = e.target;
+            const formData = new FormData(form);
+
+            document.getElementById("bar").value = 0;
+            document.getElementById("progress-label").innerText = "0%";
+            document.getElementById("progress-label").style.color = "#333";
+            document.getElementById("download-info").innerText = "";
+
+            // Show loading
+            document.getElementById("loading").style.display = "";
+
+            setTimeout(poll, 500);
+
+            fetch("/download", {
+                method: "POST",
+                body: formData,
+            })
+            .then(res => {
+                document.getElementById("loading").style.display = "none";
+                if (!res.ok) throw new Error("Download failed");
+                return res.text();
+            })
+            .catch(err => {
+                document.getElementById("loading").style.display = "none";
+                alert("❌ Download error: " + err);
+            });
+        });
+
+        document.getElementById("cancel-btn").addEventListener("click", () => {
+            fetch("/cancel", { method: "POST" });
+            cancelRequested = true;
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("cancel-btn").style.display = "none";
+            document.getElementById("download-btn").disabled = false;
+        });
+
+        // In poll, stop polling if canceled
         const poll = () => {
+            if (cancelRequested) return;
             fetch('/progress')
                 .then(res => res.json())
                 .then(data => {
-                    const raw = data.progress || "0%";
-                    const percent = parseFloat(raw.replace('%', '')) || 0;
+                    // Use overall_percent for the progress bar
+                    const percent = data.overall_percent || 0;
+                    const raw = (percent.toFixed(2) + "%");
 
                     const bar = document.getElementById("bar");
                     const label = document.getElementById("progress-label");
@@ -85,6 +167,11 @@
                     if (data.status === "finished" && data.current === data.total) {
                         label.style.color = "green";
                         alert("✅ All downloads complete!");
+                        document.getElementById("cancel-btn").style.display = "none";
+                        document.getElementById("download-btn").disabled = false;
+                    } else if (data.status === "error") {
+                        document.getElementById("cancel-btn").style.display = "none";
+                        document.getElementById("download-btn").disabled = false;
                     } else {
                         label.style.color = "#333";
                         setTimeout(poll, 500);
@@ -94,32 +181,6 @@
                     alert("❌ Error while polling: " + err);
                 });
         };
-
-        document.querySelector("form").addEventListener("submit", (e) => {
-            e.preventDefault();
-
-            const form = e.target;
-            const formData = new FormData(form);
-
-            document.getElementById("bar").value = 0;
-            document.getElementById("progress-label").innerText = "0%";
-            document.getElementById("progress-label").style.color = "#333";
-            document.getElementById("download-info").innerText = "";
-
-            setTimeout(poll, 500);
-
-            fetch("/download", {
-                method: "POST",
-                body: formData,
-            })
-            .then(res => {
-                if (!res.ok) throw new Error("Download failed");
-                return res.text();
-            })
-            .catch(err => {
-                alert("❌ Download error: " + err);
-            });
-        });
     </script>
 </body>
 </html>
