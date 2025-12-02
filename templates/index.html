@@ -43,8 +43,17 @@
         }
 
         /* =============================== */
-        /* GLOWING PERSONAL CARD STYLES */
+        /* EXACT GLOWING CARD STYLES */
         /* =============================== */
+        @font-face {
+            font-family: "Mona Sans";
+            src: url("https://assets.codepen.io/64/Mona-Sans.woff2")
+                format("woff2 supports variations"),
+            url("https://assets.codepen.io/64/Mona-Sans.woff2")
+                format("woff2-variations");
+            font-weight: 100 1000;
+        }
+
         @property --hue {
             syntax: "<number>";
             inherits: true;
@@ -103,277 +112,458 @@
             initial-value: 0;
         }
 
+        /* Hide support messages */
+        body::before,
+        body::after {
+            display: none !important;
+        }
+
+        /* Glowing Card Container - BOTTOM RIGHT CORNER */
         .glowing-card-container {
+            --card-color: hsl(210deg 15% 18%);
+            --text-color: hsl(210deg 10% 70%);
+            --card-radius: 24px;
+            --card-width: 380px; /* BIGGER SIZE */
+            --border-width: 2px;
+            --hue-speed: 0.8;
+            --animation-speed: 6s;
+            --interaction-speed: 0.55s;
+            --glow-scale: 1.5;
+            --scale-factor: 1;
+            --glow-blur: 6;
+            --glow-opacity: 0.8;
+            --glow-radius: 100;
+            --glow-rotate-unit: 1deg;
+            
             position: fixed;
-            bottom: 25px;
-            right: 25px;
-            z-index: 999;
-            width: 280px;
-            height: 140px;
-            pointer-events: none;
-        }
-
-        .glowing-card {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border-radius: 20px;
-            background: rgba(35, 42, 46, 0.85);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(127, 187, 179, 0.2);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            bottom: 30px;
+            right: 30px;
+            width: var(--card-width);
+            width: min(400px, 35vw);
+            aspect-ratio: 1.5/1;
+            color: white;
             display: flex;
-            overflow: hidden;
-            pointer-events: auto;
-            transition: all 0.3s ease;
-            transform: translateY(0);
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 999;
+            border-radius: var(--card-radius);
+            cursor: pointer;
+
+            &:hover {
+                > .glowing-card-inner {
+                    mix-blend-mode: darken;
+                    --text-color: var(--ef-accent);
+                    box-shadow: 0 0 calc(var(--white-shadow) * 1px)
+                        calc(var(--white-shadow) * 0.15px) rgba(255, 255, 255, 0.2);
+                    animation: shadow-pulse calc(var(--animation-speed) * 2) linear infinite;
+                    &:before {
+                        --bg-size: 15;
+                        animation-play-state: paused;
+                        transition: --bg-size var(--interaction-speed) ease;
+                    }
+                }
+                .glow {
+                    --glow-blur: 2;
+                    --glow-opacity: 0.8;
+                    --glow-scale: 2.2;
+                    --glow-radius: 0;
+                    --rotate: 900;
+                    --glow-rotate-unit: 0;
+                    --scale-factor: 1.2;
+                    animation-play-state: paused;
+
+                    &:after {
+                        --glow-translate-y: 0;
+                        animation-play-state: paused;
+                        transition: --glow-translate-y 0s ease, --glow-blur 0.05s ease,
+                            --glow-opacity 0.05s ease, --glow-scale 0.05s ease,
+                            --glow-radius 0.05s ease;
+                    }
+                }
+            }
+
+            &:before,
+            &:after {
+                content: "";
+                display: block;
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                border-radius: var(--card-radius);
+            }
+
+            .glowing-card-inner {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                background: var(--card-color);
+                border-radius: calc(calc(var(--card-radius) * 0.9));
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                font-family: "Mona Sans", sans-serif;
+                font-weight: 800;
+                text-transform: uppercase;
+                font-stretch: 150%;
+                font-size: 16px;
+                font-size: clamp(14px, 1.5vmin, 24px);
+                color: var(--text-color);
+                padding: calc(var(--card-width) / 8);
+                overflow: hidden;
+
+                &:before {
+                    content: "";
+                    display: block;
+                    position: absolute;
+                    width: 100%;
+                    height: 100%;
+                    border-radius: calc(calc(var(--card-radius) * 0.9));
+                    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+                    mix-blend-mode: color-burn;
+                    z-index: -1;
+                    background: hsl(0deg 0% 16%)
+                        radial-gradient(
+                            30% 30% at calc(var(--bg-x) * 1%) calc(var(--bg-y) * 1%),
+                            hsl(calc(calc(var(--hue) * var(--hue-speed)) * 1deg) 50% 70%)
+                                calc(0% * var(--bg-size)),
+                            hsl(calc(calc(var(--hue) * var(--hue-speed)) * 1deg) 45% 60%)
+                                calc(20% * var(--bg-size)),
+                            hsl(calc(calc(var(--hue) * var(--hue-speed)) * 1deg) 40% 50%)
+                                calc(40% * var(--bg-size)),
+                            transparent 100%
+                        );
+                    width: calc(100% + var(--border-width));
+                    height: calc(100% + var(--border-width));
+                    animation: hue-animation var(--animation-speed) linear infinite,
+                        rotate-bg var(--animation-speed) linear infinite;
+                    transition: --bg-size var(--interaction-speed) ease;
+                }
+            }
+
+            .glow {
+                --glow-translate-y: 0;
+                display: block;
+                position: absolute;
+                width: calc(var(--card-width) / 5);
+                height: calc(var(--card-width) / 5);
+                animation: rotate var(--animation-speed) linear infinite;
+                transform: rotateZ(calc(var(--rotate) * var(--glow-rotate-unit)));
+                transform-origin: center;
+                border-radius: calc(var(--glow-radius) * 10px);
+                z-index: -1;
+
+                &:after {
+                    content: "";
+                    display: block;
+                    z-index: -2;
+                    filter: blur(calc(var(--glow-blur) * 10px));
+                    width: 130%;
+                    height: 130%;
+                    left: -15%;
+                    top: -15%;
+                    background: hsl(
+                        calc(calc(var(--hue) * var(--hue-speed)) * 1deg) 40% 50%
+                    );
+                    position: relative;
+                    border-radius: calc(var(--glow-radius) * 10px);
+                    animation: hue-animation var(--animation-speed) linear infinite;
+                    transform: scaleY(calc(var(--glow-scale) * var(--scale-factor) / 1.1))
+                        scaleX(calc(var(--glow-scale) * var(--scale-factor) * 1.2))
+                        translateY(calc(var(--glow-translate-y) * 1%));
+                    opacity: var(--glow-opacity);
+                }
+            }
+
+            /* Profile content */
+            .profile-content {
+                position: relative;
+                z-index: 2;
+                text-align: center;
+                width: 100%;
+                padding: 20px;
+            }
+
+            .name-title {
+                font-size: 28px;
+                font-weight: 900;
+                color: var(--ef-accent);
+                margin-bottom: 15px;
+                letter-spacing: 1px;
+                text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            }
+
+            .contact-links {
+                display: flex;
+                justify-content: center;
+                gap: 20px;
+                margin-bottom: 25px;
+                flex-wrap: wrap;
+            }
+
+            .contact-link {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                text-decoration: none;
+                color: var(--ef-fg);
+                font-size: 14px;
+                font-weight: 600;
+                padding: 8px 16px;
+                background: rgba(45, 53, 59, 0.5);
+                border-radius: 10px;
+                transition: all 0.3s;
+                border: 1px solid rgba(127, 187, 179, 0.2);
+            }
+
+            .contact-link:hover {
+                background: rgba(127, 187, 179, 0.2);
+                color: var(--ef-accent3);
+                transform: translateY(-2px);
+                border-color: var(--ef-accent3);
+            }
+
+            .contact-link i {
+                font-size: 18px;
+            }
+
+            .github-link i {
+                color: #f0f6fc;
+            }
+
+            .email-link i {
+                color: #ea4335;
+            }
+
+            .linkedin-link i {
+                color: #0a66c2;
+            }
+
+            /* Programming Languages */
+            .languages-title {
+                font-size: 14px;
+                color: var(--ef-fg-muted);
+                margin-bottom: 12px;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+                font-weight: 700;
+            }
+
+            .languages-grid {
+                display: flex;
+                justify-content: center;
+                gap: 12px;
+                flex-wrap: wrap;
+            }
+
+            .language-item {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 6px;
+            }
+
+            .language-icon {
+                width: 42px;
+                height: 42px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 22px;
+                font-weight: bold;
+                color: #232a2e;
+                transition: all 0.3s;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            }
+
+            .language-icon:hover {
+                transform: scale(1.15) translateY(-3px);
+                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+            }
+
+            .language-name {
+                font-size: 12px;
+                color: var(--ef-fg-muted);
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+
+            /* Language-specific colors - DEFAULT ICON COLORS */
+            .python-icon {
+                background: linear-gradient(135deg, #3776AB 0%, #FFD43B 100%);
+                color: white !important;
+            }
+
+            .c-icon {
+                background: linear-gradient(135deg, #00599C 0%, #649AD2 100%);
+                color: white !important;
+            }
+
+            .lua-icon {
+                background: linear-gradient(135deg, #000080 0%, #2C2D72 100%);
+                color: white !important;
+            }
         }
 
-        .glowing-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-            border-color: rgba(127, 187, 179, 0.4);
+        @keyframes shadow-pulse {
+            0%,
+            24%,
+            46%,
+            73%,
+            96% {
+                --white-shadow: 0.5;
+            }
+            12%,
+            28%,
+            41%,
+            63%,
+            75%,
+            82%,
+            98% {
+                --white-shadow: 2.5;
+            }
+            6%,
+            32%,
+            57% {
+                --white-shadow: 1.3;
+            }
+            18%,
+            52%,
+            88% {
+                --white-shadow: 3.5;
+            }
         }
 
-        .glow-effect {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border-radius: 20px;
-            overflow: hidden;
-            z-index: -1;
-        }
-
-        .glow-effect::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: conic-gradient(
-                from 0deg,
-                transparent,
-                rgba(167, 192, 128, 0.2),
-                rgba(127, 187, 179, 0.3),
-                rgba(230, 126, 128, 0.2),
-                transparent
-            );
-            animation: rotateGlow 4s linear infinite;
-            filter: blur(20px);
-            opacity: 0.7;
-        }
-
-        @keyframes rotateGlow {
+        @keyframes rotate-bg {
             0% {
-                transform: rotate(0deg);
+                --bg-x: 0;
+                --bg-y: 0;
+            }
+
+            25% {
+                --bg-x: 100;
+                --bg-y: 0;
+            }
+
+            50% {
+                --bg-x: 100;
+                --bg-y: 100;
+            }
+
+            75% {
+                --bg-x: 0;
+                --bg-y: 100;
+            }
+
+            100% {
+                --bg-x: 0;
+                --bg-y: 0;
+            }
+        }
+        
+        @keyframes rotate {
+            from {
+                --rotate: -70;
+                --glow-translate-y: -65;
+            }
+
+            25% {
+                --glow-translate-y: -65;
+            }
+
+            50% {
+                --glow-translate-y: -65;
+            }
+
+            60%,
+            75% {
+                --glow-translate-y: -65;
+            }
+
+            85% {
+                --glow-translate-y: -65;
+            }
+
+            to {
+                --rotate: calc(360 - 70);
+                --glow-translate-y: -65;
+            }
+        }
+        
+        @keyframes hue-animation {
+            0% {
+                --hue: 0;
             }
             100% {
-                transform: rotate(360deg);
+                --hue: 360;
             }
-        }
-
-        .profile-section {
-            width: 40%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 15px;
-            border-right: 1px solid rgba(127, 187, 179, 0.1);
-        }
-
-        .profile-pic {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #7fbbb3, #a7c080);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            color: #232a2e;
-            font-weight: bold;
-            margin-bottom: 10px;
-            border: 3px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .profile-name {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--ef-accent);
-            text-align: center;
-            line-height: 1.2;
-        }
-
-        .info-section {
-            width: 60%;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .contact-info {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-bottom: 10px;
-        }
-
-        .contact-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 12px;
-            color: var(--ef-fg-muted);
-            transition: color 0.2s;
-        }
-
-        .contact-item:hover {
-            color: var(--ef-accent3);
-        }
-
-        .contact-item i {
-            font-size: 14px;
-            color: var(--ef-accent);
-            width: 16px;
-            text-align: center;
-        }
-
-        .contact-link {
-            text-decoration: none;
-            color: inherit;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
-        }
-
-        .contact-link:hover {
-            color: var(--ef-accent3);
-            transform: translateX(2px);
-        }
-
-        .tech-stack {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-        }
-
-        .tech-icon {
-            width: 22px;
-            height: 22px;
-            background: rgba(127, 187, 179, 0.1);
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            color: var(--ef-accent3);
-            transition: all 0.2s;
-        }
-
-        .tech-icon:hover {
-            background: rgba(127, 187, 179, 0.2);
-            transform: translateY(-2px);
-        }
-
-        /* Toggle button for the card */
-        .card-toggle {
-            position: absolute;
-            top: -15px;
-            right: 10px;
-            background: var(--ef-accent3);
-            color: #232a2e;
-            border: none;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            z-index: 1000;
-            transition: all 0.2s;
-            opacity: 0.7;
-            pointer-events: auto;
-        }
-
-        .card-toggle:hover {
-            opacity: 1;
-            transform: scale(1.1);
-        }
-
-        /* Hide/show animation */
-        .glowing-card-container.hidden {
-            transform: translateX(100%);
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .glowing-card-container.hidden .glowing-card {
-            transform: translateX(100%);
         }
 
         /* Responsive design */
         @media (max-width: 768px) {
             .glowing-card-container {
-                width: 250px;
-                height: 130px;
-                bottom: 20px;
+                --card-width: 320px;
                 right: 20px;
+                bottom: 20px;
             }
-
-            .profile-pic {
-                width: 60px;
-                height: 60px;
+            
+            .name-title {
                 font-size: 24px;
             }
-
-            .profile-name {
+            
+            .contact-links {
+                gap: 12px;
+            }
+            
+            .contact-link {
                 font-size: 12px;
+                padding: 6px 12px;
             }
-
-            .contact-item {
-                font-size: 11px;
-            }
-
-            .tech-icon {
-                width: 20px;
-                height: 20px;
-                font-size: 11px;
+            
+            .language-icon {
+                width: 36px;
+                height: 36px;
+                font-size: 18px;
             }
         }
 
         @media (max-width: 480px) {
             .glowing-card-container {
-                width: 220px;
-                height: 120px;
-                bottom: 15px;
+                --card-width: 280px;
                 right: 15px;
+                bottom: 15px;
             }
-
-            .profile-pic {
-                width: 50px;
-                height: 50px;
+            
+            .name-title {
                 font-size: 20px;
             }
-
-            .profile-name {
+            
+            .contact-links {
+                flex-direction: column;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .contact-link {
+                width: 180px;
+                justify-content: center;
+            }
+            
+            .languages-grid {
+                gap: 10px;
+            }
+            
+            .language-icon {
+                width: 32px;
+                height: 32px;
+                font-size: 16px;
+            }
+            
+            .language-name {
                 font-size: 11px;
-            }
-
-            .contact-item {
-                font-size: 10px;
-            }
-
-            .tech-icon {
-                width: 18px;
-                height: 18px;
-                font-size: 10px;
             }
         }
 
@@ -759,40 +949,49 @@
     </div>
 
     <!-- =============================== -->
-    <!-- GLOWING PERSONAL CARD -->
+    <!-- GLOWING PERSONAL CARD (EXACT STYLE) -->
     <!-- =============================== -->
-    <div class="glowing-card-container" id="personalCard">
-        <button class="card-toggle" id="cardToggle">
-            <i class="fas fa-times"></i>
-        </button>
-        <div class="glow-effect"></div>
-        <div class="glowing-card">
-            <div class="profile-section">
-                <div class="profile-pic">DC</div>
-                <div class="profile-name">Dev Creator</div>
-            </div>
-            <div class="info-section">
-                <div class="contact-info">
-                    <a href="https://github.com/yourusername" target="_blank" class="contact-link">
+    <div class="glowing-card-container">
+        <span class="glow"></span>
+        <div class="glowing-card-inner">
+            <div class="profile-content">
+                <div class="name-title">Souilah Wael</div>
+                
+                <div class="contact-links">
+                    <a href="https://github.com/souilahwael" target="_blank" class="contact-link github-link">
                         <i class="fab fa-github"></i>
                         <span>GitHub</span>
                     </a>
-                    <a href="mailto:dev@example.com" class="contact-link">
+                    <a href="mailto:souilah.wael@example.com" class="contact-link email-link">
                         <i class="fas fa-envelope"></i>
                         <span>Email</span>
                     </a>
-                    <a href="https://linkedin.com/in/yourprofile" target="_blank" class="contact-link">
+                    <a href="https://linkedin.com/in/souilahwael" target="_blank" class="contact-link linkedin-link">
                         <i class="fab fa-linkedin"></i>
                         <span>LinkedIn</span>
                     </a>
                 </div>
-                <div class="tech-stack">
-                    <div class="tech-icon" title="Python"><i class="fab fa-python"></i></div>
-                    <div class="tech-icon" title="JavaScript"><i class="fab fa-js"></i></div>
-                    <div class="tech-icon" title="HTML5"><i class="fab fa-html5"></i></div>
-                    <div class="tech-icon" title="CSS3"><i class="fab fa-css3-alt"></i></div>
-                    <div class="tech-icon" title="Flask"><i class="fas fa-flask"></i></div>
-                    <div class="tech-icon" title="Git"><i class="fab fa-git-alt"></i></div>
+                
+                <div class="languages-title">Programming Languages</div>
+                <div class="languages-grid">
+                    <div class="language-item">
+                        <div class="language-icon c-icon" title="C">
+                            C
+                        </div>
+                        <div class="language-name">C</div>
+                    </div>
+                    <div class="language-item">
+                        <div class="language-icon python-icon" title="Python">
+                            <i class="fab fa-python"></i>
+                        </div>
+                        <div class="language-name">Python</div>
+                    </div>
+                    <div class="language-item">
+                        <div class="language-icon lua-icon" title="Lua">
+                            Lua
+                        </div>
+                        <div class="language-name">Lua</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -816,50 +1015,24 @@
         // State
         let isDownloading = false;
         let pollInterval = null;
-        // --- NEW: Preview state ---
         let previewTimeout = null;
         let currentPreviewUrl = '';
 
         // =============================== //
         // GLOWING CARD JAVASCRIPT //
         // =============================== //
-        const personalCard = document.getElementById('personalCard');
-        const cardToggle = document.getElementById('cardToggle');
-
-        // Toggle card visibility
-        function togglePersonalCard() {
-            personalCard.classList.toggle('hidden');
-            const isHidden = personalCard.classList.contains('hidden');
-            cardToggle.innerHTML = isHidden ? '<i class="fas fa-plus"></i>' : '<i class="fas fa-times"></i>';
-            
-            // Save preference to localStorage
-            localStorage.setItem('personalCardHidden', isHidden);
-        }
-
-        // Initialize card state from localStorage
-        function initPersonalCard() {
-            const isHidden = localStorage.getItem('personalCardHidden') === 'true';
-            if (isHidden) {
-                personalCard.classList.add('hidden');
-                cardToggle.innerHTML = '<i class="fas fa-plus"></i>';
-            }
-            
-            // Add event listener to toggle button
-            cardToggle.addEventListener('click', togglePersonalCard);
-            
-            // Auto-hide card after 10 seconds on first visit
-            const firstVisit = !localStorage.getItem('cardAutoHidden');
-            if (firstVisit) {
-                setTimeout(() => {
-                    if (!personalCard.classList.contains('hidden')) {
-                        personalCard.classList.add('hidden');
-                        cardToggle.innerHTML = '<i class="fas fa-plus"></i>';
-                        localStorage.setItem('cardAutoHidden', 'true');
-                    }
-                }, 10000);
-            }
-            
-            console.log('Glowing personal card initialized');
+        // Credit: @LukyVj
+        // https://twitter.com/LukyVj
+        // https://lucasbonomi.com
+        
+        if (typeof window.CSS.registerProperty === 'function') {
+            console.log('CSS.registerProperty supported 🎉');
+            document.body.style.setProperty('--supported', 1);
+            document.body.classList.add('registerProperty-supported');
+        } else {
+            console.log('CSS.registerProperty not supported ❌');
+            document.body.style.setProperty('--not-supported', 1);
+            document.body.classList.add('registerProperty-not-supported');
         }
 
         // Filter quality options based on download type
@@ -1199,7 +1372,6 @@
             filterQualityOptions();
             setupTabs();
             resetUI();
-            initPersonalCard(); // Initialize the glowing personal card
             
             // Set up event listeners
             downloadType.addEventListener("change", filterQualityOptions);
@@ -1210,7 +1382,9 @@
                 previewPlaylist(e.target.value);
             });
             
-            console.log("YouTube Downloader UI initialized with glowing personal card!");
+            console.log("YouTube Downloader UI initialized with EXACT glowing card style!");
+            console.log("Name: Souilah Wael");
+            console.log("Languages: C, Python, Lua");
         }
 
         // Start the application when DOM is loaded
