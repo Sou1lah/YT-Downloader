@@ -512,7 +512,7 @@
             gap: 0;
             padding: 0;
             border-radius: 0;
-            pointer-events: auto;
+            pointer-events: none;
             z-index: 10;
         }
 
@@ -524,7 +524,7 @@
             cursor: pointer;
             position: relative;
             overflow: visible;
-            pointer-events: auto;
+            pointer-events: none;
         }
 
         /* Hover rotations - slight tilt based on position */
@@ -1014,7 +1014,7 @@
                 <div style="display: flex; flex-direction: column; gap: 10px; align-items: center; width: 100%; height: 100%; justify-content: space-between; padding: 10px 0;">
                     <div style="display: flex; gap: 15px; align-items: flex-start; width: 100%; padding: 0 10px;">
                         <div style="flex-shrink: 0;">
-                            <img src="https://i.pinimg.com/736x/ef/65/46/ef6546894807bde3619d0bcf4d583c71.jpg" alt="Profile" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);">
+                            <img src="https://i.pinimg.com/736x/f8/4b/e9/f84be98bcaf36ef0865dce31ee60a61a.jpg" alt="Profile" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; box-shadow: 0 4px 15px soli  rgba(0, 0, 0, 0.4);">
                         </div>
                         <div style="flex: 1; text-align: left; display: flex; flex-direction: column; justify-content: flex-start;">
                             <h2 class="card-shiny" style="margin: 0 0 5px 0; font-size: 1.3rem; font-weight: 700;">Souilah Ahmed Wael</h2>
@@ -1028,7 +1028,7 @@
                         <a href="https://github.com/Sou1lah" target="_blank" rel="noopener noreferrer" title="GitHub" onclick="event.stopPropagation()" style="width: 45px; height: 45px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; color: white; background: linear-gradient(135deg, #2a394f, #001c55); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: all 0.3s ease; text-decoration: none; border: none; cursor: pointer;">
                             <i class="fab fa-github"></i>
                         </a>
-                        <a href="https://x.com/wael_souilah" target="_blank" rel="noopener noreferrer" title="X" style="width: 45px; height: 45px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; color: white; background: linear-gradient(135deg, #1d1d1d, #333); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: all 0.3s ease; text-decoration: none; border: none; cursor: pointer;">
+                        <a href="https://x.com/wael_souilah" target="_blank" rel="noopener noreferrer" title="X" onclick="event.stopPropagation()" style="width: 45px; height: 45px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; color: white; background: linear-gradient(135deg, #1d1d1d, #333); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: all 0.3s ease; text-decoration: none; border: none; cursor: pointer;">
                             <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.514l-5.106-6.694-5.934 6.694H2.422l7.723-8.835L1.254 2.25h6.554l4.6 6.084 5.514-6.084zM17.534 20.766h1.832L6.455 3.812H4.527l13.007 16.954z'/%3E%3C/svg%3E" alt="X" style="width: 20px; height: 20px;">
                         </a>
                         <a href="https://www.instagram.com/waaaeeelll_08/" target="_blank" rel="noopener noreferrer" title="Instagram" onclick="event.stopPropagation()" style="width: 45px; height: 45px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; color: white; background: linear-gradient(135deg, #e74c3c, #e8405a); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: all 0.3s ease; text-decoration: none; border: none; cursor: pointer;">
@@ -1090,23 +1090,21 @@
         let currentPreviewUrl = '';
 
         // Card interaction - click to flip
-        document.querySelector('.interactive-card-container').addEventListener('click', (e) => {
-            const card = document.getElementById("card");
-            if (e.target.closest('a') || e.target.closest('button') || e.target.tagName === 'A') {
-                return;
-            }
-            card.classList.toggle('flipped');
-        });
-
+        const container = document.querySelector('.interactive-card-container');
+        const hoverGrid = document.querySelector('.hover-grid');
+        
         card.addEventListener('click', (e) => {
-            if (e.target.closest('a') || e.target.closest('button') || e.target.tagName === 'A') {
+            // Don't flip if clicking on social links or their content
+            const clickedLink = e.target.closest('a');
+            if (clickedLink) {
+                // Allow the link to work normally
                 return;
             }
+            // Flip the card for all other clicks
             card.classList.toggle('flipped');
         });
 
         // Hover rotation for both front and back
-        const hoverGrid = document.querySelector('.hover-grid');
         const cardEl = document.getElementById('card');
         const hoverClasses = ['tl','tc','tr','cl','cr','bl','bc','br','cc'];
         hoverGrid.querySelectorAll('.hover-cell').forEach(cell => {
