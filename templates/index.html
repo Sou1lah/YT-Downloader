@@ -473,6 +473,26 @@
             perspective: 1000px;
             z-index: 100;
             cursor: pointer;
+            display: none;
+        }
+        
+        /* Mobile/Phone Compatibility */
+        @media (max-width: 768px) {
+            .interactive-card-container {
+                bottom: 20px;
+                right: 20px;
+                width: 320px;
+                height: 200px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .interactive-card-container {
+                bottom: 15px;
+                right: 15px;
+                width: 280px;
+                height: 180px;
+            }
         }
         
         .interactive-card-container:hover > .interactive-card::before {
@@ -830,6 +850,120 @@
         .flip-btn {
             display: none;
         }
+        
+        /* Modal/Popup Styles */
+        .card-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        
+        .card-modal.active {
+            display: flex;
+        }
+        
+        .card-modal-container {
+            width: 450px;
+            height: 280px;
+            perspective: 1000px;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .card-modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            color: white;
+            font-size: 28px;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .card-modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+        
+        /* Mobile modal */
+        @media (max-width: 768px) {
+            .card-modal-container {
+                width: 350px;
+                height: 220px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .card-modal-container {
+                width: 90vw;
+                height: 70vh;
+                max-width: 300px;
+                max-height: 200px;
+            }
+        }
+        
+        /* Popup button */
+        .card-popup-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(90deg, var(--ef-accent3), var(--ef-accent));
+            color: #1a1f1e;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 50px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 1rem;
+            box-shadow: 0 8px 20px rgba(127, 187, 179, 0.4);
+            transition: all 0.3s ease;
+            z-index: 99;
+        }
+        
+        .card-popup-btn:hover {
+            transform: translateX(-50%) translateY(-3px);
+            box-shadow: 0 12px 30px rgba(127, 187, 179, 0.6);
+        }
+        
+        .card-popup-btn:active {
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        @media (max-width: 768px) {
+            .card-popup-btn {
+                padding: 12px 24px;
+                font-size: 0.95rem;
+                bottom: 15px;
+            }
+        }
 
         /* Glowing border animations */
         @keyframes shadow-pulse {
@@ -1057,6 +1191,17 @@
                     <div class="tech-icon figma" title="Figma"><i class="fab fa-figma"></i></div>
                 </div>
             </div>
+        </div>
+    </div>
+    
+    <!-- Popup Button -->
+    <button class="card-popup-btn" id="card-popup-btn">👤 My Profile</button>
+    
+    <!-- Card Modal/Popup -->
+    <div class="card-modal" id="card-modal">
+        <button class="card-modal-close" id="card-modal-close">&times;</button>
+        <div class="card-modal-container" id="card-modal-container">
+            <!-- Card will be cloned here -->
         </div>
     </div>
 
@@ -1432,6 +1577,57 @@
                 downloadInfo.textContent = "❌ Failed to cancel download";
                 cancelBtn.disabled = false;
             });
+        });
+
+        // Modal functionality for profile card
+        const popupBtn = document.getElementById('card-popup-btn');
+        const modal = document.getElementById('card-modal');
+        const closeBtn = document.getElementById('card-modal-close');
+        const modalContainer = document.getElementById('card-modal-container');
+        const originalCard = document.getElementById('card');
+        
+        popupBtn.addEventListener('click', () => {
+            // Clone the original card
+            const clonedCard = originalCard.cloneNode(true);
+            clonedCard.id = 'modal-card';
+            
+            // Clear and add cloned card to modal
+            modalContainer.innerHTML = '';
+            modalContainer.appendChild(clonedCard);
+            
+            // Show modal
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            
+            // Add click handler to cloned card for flipping
+            clonedCard.addEventListener('click', (e) => {
+                const clickedLink = e.target.closest('a');
+                if (clickedLink) {
+                    return;
+                }
+                clonedCard.classList.toggle('flipped');
+            });
+        });
+        
+        closeBtn.addEventListener('click', () => {
+            modal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        });
+        
+        // Close modal when clicking outside the card
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+                document.body.style.overflow = 'auto';
+            }
+        });
+        
+        // Close on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.classList.contains('active')) {
+                modal.classList.remove('active');
+                document.body.style.overflow = 'auto';
+            }
         });
 
         // Initialize the application
