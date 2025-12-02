@@ -1,7 +1,7 @@
 # ================================
 # 🚀 IMPORTS & FLASK SETUP
 # ================================
-from flask import Flask, request, render_template, jsonify, session, send_from_directory
+from flask import Flask, request, render_template, jsonify, session, send_from_directory, send_file
 import yt_dlp
 import re
 import threading
@@ -10,6 +10,8 @@ from pathlib import Path
 import json
 import uuid
 from datetime import timedelta
+import mimetypes
+from urllib.parse import quote
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -18,15 +20,51 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = True  # Railway uses HTTPS
 
 # ================================
-# 📁 RAILWAY-SPECIFIC CONFIGURATION
+# 📁 MULTI-DEVICE STORAGE CONFIGURATION
 # ================================
 
 # Get port from Railway environment variable or default to 5000
 PORT = int(os.environ.get('PORT', 5000))
 
-# Create downloads directory (Railway provides ephemeral storage)
-DOWNLOAD_PATH = Path('/tmp/yt-downloader')  # Use /tmp for Railway ephemeral storage
-DOWNLOAD_PATH.mkdir(parents=True, exist_ok=True)
+# Determine storage path based on environment
+if os.environ.get('RAILWAY_ENVIRONMENT'):
+    # Railway production - use ephemeral storage
+    BASE_STORAGE_PATH = Path('/tmp/yt-downloader')
+    print("🚆 Running on Railway - using ephemeral storage")
+else:
+    # Local development - use persistent storage
+    BASE_STORAGE_PATH = Path.home() / 'yt-downloader' / 'downloads'
+    print("💻 Running locally - using persistent storage")
+
+# Create storage structure
+DOWNLOAD_PATH = BASE_STORAGE_PATH / 'downloads'
+CACHE_PATH = BASE_STORAGE_PATH / 'cache'
+LOG_PATH = BASE_STORAGE_PATH / 'logs'
+
+for path in [DOWNLOAD_PATH, CACHE_PATH, LOG_PATH]:
+    path.mkdir(parents=True, exist_ok=True)
+
+print(f"📁 Storage path: {BASE_STORAGE_PATH}")
+print(f"📂 Downloads: {DOWNLOAD_PATH}")
+print(f"📁 Cache: {CACHE_PATH}")
+print(f"📝 Logs: {LOG_PATH}")
+
+# ================================
+# 🔧 DEV TOOLS CONFIGURATION
+# ================================
+DEV_MODE = os.environ.get('DEV_MODE', 'False').lower() == 'true'
+dev_logs = []
+
+def dev_log(message, level="INFO"):
+    """Log message for dev tools"""
+    if DEV_MODE:
+        timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        log_entry = f"[{timestamp}] [{level}] {message}"
+        dev_logs.append(log_entry)
+        # Keep only last 1000 log entries
+        if len(dev_logs) > 1000:
+            dev_logs.pop(0)
+        print(log_entry)
 
 # ================================
 # 📦 SESSION-BASED PROGRESS STATE
@@ -49,9 +87,12 @@ def get_session_id():
             "overall_percent": 0.0,
             "playlist_info": [],
             "current_download": "",
-            "downloaded_videos": []
+            "downloaded_videos": [],
+            "local_files": [],  # Track files in local storage
+            "downloads_history": []  # Track download history
         }
         cancel_flags[session['user_id']] = {"cancel": False}
+        dev_log(f"New session created: {session['user_id'][:8]}", "SESSION")
     return session['user_id']
 
 def get_progress_data(user_id=None):
@@ -67,7 +108,9 @@ def get_progress_data(user_id=None):
         "overall_percent": 0.0,
         "playlist_info": [],
         "current_download": "",
-        "downloaded_videos": []
+        "downloaded_videos": [],
+        "local_files": [],
+        "downloads_history": []
     })
 
 def update_progress_data(updates, user_id=None):
@@ -91,7 +134,9 @@ def reset_progress_data(user_id=None):
         "overall_percent": 0.0,
         "playlist_info": [],
         "current_download": "",
-        "downloaded_videos": user_sessions.get(user_id, {}).get("downloaded_videos", [])
+        "downloaded_videos": user_sessions.get(user_id, {}).get("downloaded_videos", []),
+        "local_files": scan_local_files(user_id),
+        "downloads_history": user_sessions.get(user_id, {}).get("downloads_history", [])
     }
 
 def get_cancel_flag(user_id=None):
@@ -105,6 +150,43 @@ def get_cancel_flag(user_id=None):
 def strip_ansi(text):
     """Remove ANSI escape codes from text"""
     return re.sub(r'\x1b\[[0-9;]*m', '', text)
+
+def scan_local_files(user_id):
+    """Scan DOWNLOAD_PATH for files belonging to this session/user"""
+    try:
+        user_files = []
+        # Look for files with session ID in name or all files if we can't distinguish
+        for file_path in DOWNLOAD_PATH.glob("*"):
+            if file_path.is_file():
+                # Get file info
+                stat = file_path.stat()
+                file_info = {
+                    "name": file_path.name,
+                    "size": stat.st_size,
+                    "size_formatted": format_file_size(stat.st_size),
+                    "modified": stat.st_mtime,
+                    "modified_formatted": datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M:%S"),
+                    "path": str(file_path),
+                    "url": f"/downloads/{quote(file_path.name)}"
+                }
+                user_files.append(file_info)
+        
+        dev_log(f"Scanned {len(user_files)} files in local storage for session {user_id[:8]}", "STORAGE")
+        return sorted(user_files, key=lambda x: x["modified"], reverse=True)
+    except Exception as e:
+        dev_log(f"Error scanning local files: {e}", "ERROR")
+        return []
+
+def format_file_size(size_bytes):
+    """Format file size in human-readable format"""
+    if size_bytes == 0:
+        return "0B"
+    size_names = ["B", "KB", "MB", "GB", "TB"]
+    i = 0
+    while size_bytes >= 1024 and i < len(size_names) - 1:
+        size_bytes /= 1024.0
+        i += 1
+    return f"{size_bytes:.2f} {size_names[i]}"
 
 def progress_hook(d, user_id, cancel_flag):
     if cancel_flag["cancel"]:
@@ -161,6 +243,9 @@ def progress_hook(d, user_id, cancel_flag):
         else:
             overall = (new_current / total) * 100
         
+        # Scan for new files in local storage
+        local_files = scan_local_files(user_id)
+        
         update_progress_data({
             "current": new_current,
             "status": "finished" if is_complete else "downloading",
@@ -168,11 +253,12 @@ def progress_hook(d, user_id, cancel_flag):
             "playlist_info": playlist_info,
             "downloaded_videos": downloaded_videos,
             "current_download": "" if is_complete else title,
-            "overall_percent": round(overall, 2)
+            "overall_percent": round(overall, 2),
+            "local_files": local_files
         }, user_id)
 
 def start_download(url, download_type, quality, user_id):
-    """Start download in background thread - RAILWAY EDITION"""
+    """Start download in background thread"""
     cancel_flag = get_cancel_flag(user_id)
     cancel_flag["cancel"] = False
     
@@ -184,21 +270,21 @@ def start_download(url, download_type, quality, user_id):
     use_preview = (progress_data.get("preview_loaded") and 
                   progress_data.get("preview_url") == url)
     
-    # 🚀 yt-dlp options (Railway optimized)
+    # 🚀 yt-dlp options
     ydl_base_opts = {
         'progress_hooks': [wrapped_hook],
         'noplaylist': False,
-        'outtmpl': str(DOWNLOAD_PATH / "%(title).100s.%(ext)s"),  # Use Railway's /tmp
+        'outtmpl': str(DOWNLOAD_PATH / "%(title).100s.%(ext)s"),
         'quiet': False,
         'no_warnings': False,
         'ignoreerrors': True,
         'extract_flat': use_preview,
         'lazy_playlist': True,
-        'concurrent_fragment_downloads': 4,  # Reduced for Railway limits
-        'http_chunk_size': 1048576,  # 1MB chunks for stability
+        'concurrent_fragment_downloads': 4,
+        'http_chunk_size': 1048576,
         'continuedl': True,
         'noprogress': False,
-        'sleep_interval': 1,  # Added delay to prevent rate limiting
+        'sleep_interval': 1,
         'max_sleep_interval': 5,
         'retry_sleep': 1,
         'socket_timeout': 30,
@@ -208,6 +294,8 @@ def start_download(url, download_type, quality, user_id):
         'writesubtitles': False,
         'writeautomaticsub': False,
         'getcomments': False,
+        'cachedir': str(CACHE_PATH),  # Use cache directory
+        'no_cache_dir': False,
         'extractor_args': {
             'youtube': {
                 'player_client': ['android', 'web'],
@@ -221,14 +309,12 @@ def start_download(url, download_type, quality, user_id):
             'Accept-Language': 'en-US,en;q=0.9',
             'Accept-Encoding': 'gzip, deflate',
         },
-        'retries': 3,  # Reduced retries
+        'retries': 3,
         'fragment_retries': 3,
         'skip_unavailable_fragments': True,
         'continue_dl': True,
-        'cachedir': False,
-        'no_cache_dir': True,
-        'nocheckcertificate': True,  # Important for Railway
-        'proxy': '',  # Explicitly disable proxy
+        'nocheckcertificate': True,
+        'proxy': '',
     }
 
     if download_type == "audio":
@@ -257,9 +343,9 @@ def start_download(url, download_type, quality, user_id):
         }
 
     try:
-        print(f"🎯 [{user_id[:8]}] Starting download on Railway: {url}")
-        print(f"📦 [{user_id[:8]}] Type: {download_type}, Quality: {quality}")
-        print(f"📁 [{user_id[:8]}] Download path: {DOWNLOAD_PATH}")
+        dev_log(f"Starting download: {url}", "DOWNLOAD")
+        dev_log(f"Type: {download_type}, Quality: {quality}", "DOWNLOAD")
+        dev_log(f"Storage path: {DOWNLOAD_PATH}", "STORAGE")
         
         # If we already have playlist info from preview, use it
         if use_preview:
@@ -267,7 +353,7 @@ def start_download(url, download_type, quality, user_id):
                 "status": "starting",
                 "current": 0
             }, user_id)
-            print(f"📋 [{user_id[:8]}] Using pre-loaded playlist: {progress_data.get('total', 0)} videos")
+            dev_log(f"Using pre-loaded playlist: {progress_data.get('total', 0)} videos", "DOWNLOAD")
         else:
             # Fall back to original slow method
             update_progress_data({"status": "processing"}, user_id)
@@ -279,6 +365,7 @@ def start_download(url, download_type, quality, user_id):
                 'ignoreerrors': True,
                 'nocheckcertificate': True,
                 'proxy': '',
+                'cachedir': str(CACHE_PATH),
             }) as ydl:
                 basic_info = ydl.extract_info(url, download=False)
                 
@@ -301,7 +388,7 @@ def start_download(url, download_type, quality, user_id):
                         "playlist_info": playlist_info,
                         "status": "starting"
                     }, user_id)
-                    print(f"📋 [{user_id[:8]}] Slow playlist loaded: {total_count} videos")
+                    dev_log(f"Slow playlist loaded: {total_count} videos", "DOWNLOAD")
                 else:
                     if basic_info is None:
                         raise Exception("Could not retrieve video info")
@@ -315,19 +402,34 @@ def start_download(url, download_type, quality, user_id):
                         "playlist_info": playlist_info,
                         "status": "starting"
                     }, user_id)
-                    print(f"🎬 [{user_id[:8]}] Single video loaded (slow)")
+                    dev_log(f"Single video loaded (slow)", "DOWNLOAD")
         
         # 🚀 START ACTUAL DOWNLOAD
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
             
         if not cancel_flag["cancel"]:
+            # Add to download history
+            progress_data = get_progress_data(user_id)
+            history_entry = {
+                "timestamp": datetime.now().isoformat(),
+                "url": url,
+                "type": download_type,
+                "quality": quality,
+                "title": progress_data.get("title", ""),
+                "total_videos": progress_data.get("total", 0)
+            }
+            
+            downloads_history = progress_data.get("downloads_history", [])
+            downloads_history.append(history_entry)
+            
             update_progress_data({
                 "status": "finished",
                 "overall_percent": 100.0,
-                "current_download": ""
+                "current_download": "",
+                "downloads_history": downloads_history[-20:]  # Keep last 20 entries
             }, user_id)
-            print(f"✅ [{user_id[:8]}] Download completed successfully")
+            dev_log(f"Download completed successfully", "DOWNLOAD")
         
     except Exception as e:
         if cancel_flag["cancel"]:
@@ -335,13 +437,13 @@ def start_download(url, download_type, quality, user_id):
                 "status": "canceled",
                 "progress": "❌ Download canceled"
             }, user_id)
-            print(f"⏹️ [{user_id[:8]}] Download canceled by user")
+            dev_log(f"Download canceled by user", "DOWNLOAD")
         else:
             update_progress_data({
                 "status": "error",
                 "progress": f"❌ Error: {str(e)}"
             }, user_id)
-            print(f"❌ [{user_id[:8]}] Download error: {e}")
+            dev_log(f"Download error: {e}", "ERROR")
 
 # ================================
 # 🌐 ROUTES
@@ -356,12 +458,18 @@ def index():
 def download():
     user_id = get_session_id()
     
-    # Reset state but preserve downloaded videos
+    # Reset state but preserve downloaded videos and history
     current_data = get_progress_data(user_id)
     downloaded_videos = current_data.get("downloaded_videos", [])
+    downloads_history = current_data.get("downloads_history", [])
+    local_files = scan_local_files(user_id)
     
     reset_progress_data(user_id)
-    update_progress_data({"downloaded_videos": downloaded_videos}, user_id)
+    update_progress_data({
+        "downloaded_videos": downloaded_videos,
+        "downloads_history": downloads_history,
+        "local_files": local_files
+    }, user_id)
     
     # Get form data
     url = request.form.get("url")
@@ -395,7 +503,10 @@ def download():
 @app.route("/progress")
 def progress():
     user_id = get_session_id()
-    return jsonify(get_progress_data(user_id))
+    # Always update local files when checking progress
+    progress_data = get_progress_data(user_id)
+    progress_data["local_files"] = scan_local_files(user_id)
+    return jsonify(progress_data)
 
 @app.route("/cancel", methods=["POST"])
 def cancel():
@@ -406,7 +517,7 @@ def cancel():
         "status": "canceled",
         "progress": "❌ Download canceled"
     }, user_id)
-    print(f"⏹️ [{user_id[:8]}] Cancel request received")
+    dev_log(f"Cancel request received", "DOWNLOAD")
     return "Canceled"
 
 @app.route("/reset", methods=["POST"])
@@ -431,23 +542,167 @@ def new_session():
     return render_template("index.html")
 
 # ================================
+# 📂 LOCAL STORAGE ROUTES
+# ================================
+@app.route("/downloads/<filename>")
+def download_file(filename):
+    """Serve downloaded files"""
+    try:
+        file_path = DOWNLOAD_PATH / filename
+        if not file_path.exists():
+            return "File not found", 404
+        
+        # Get file info for logging
+        stat = file_path.stat()
+        dev_log(f"Serving file: {filename} ({format_file_size(stat.st_size)})", "STORAGE")
+        
+        return send_file(
+            file_path,
+            as_attachment=True,
+            download_name=filename,
+            mimetype=mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+        )
+    except Exception as e:
+        dev_log(f"Error serving file {filename}: {e}", "ERROR")
+        return str(e), 500
+
+@app.route("/storage/files")
+def list_files():
+    """List all files in local storage"""
+    user_id = get_session_id()
+    files = scan_local_files(user_id)
+    return jsonify({"files": files})
+
+@app.route("/storage/delete/<filename>", methods=["DELETE"])
+def delete_file(filename):
+    """Delete a file from local storage"""
+    try:
+        file_path = DOWNLOAD_PATH / filename
+        if file_path.exists():
+            file_path.unlink()
+            dev_log(f"Deleted file: {filename}", "STORAGE")
+            
+            # Update session data
+            user_id = get_session_id()
+            update_progress_data({
+                "local_files": scan_local_files(user_id)
+            }, user_id)
+            
+            return jsonify({"status": "success", "message": f"Deleted {filename}"})
+        else:
+            return jsonify({"status": "error", "message": "File not found"}), 404
+    except Exception as e:
+        dev_log(f"Error deleting file {filename}: {e}", "ERROR")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route("/storage/clear", methods=["POST"])
+def clear_storage():
+    """Clear all files from local storage"""
+    try:
+        deleted_count = 0
+        for file_path in DOWNLOAD_PATH.glob("*"):
+            if file_path.is_file():
+                file_path.unlink()
+                deleted_count += 1
+        
+        dev_log(f"Cleared {deleted_count} files from storage", "STORAGE")
+        
+        # Update session data
+        user_id = get_session_id()
+        update_progress_data({
+            "local_files": []
+        }, user_id)
+        
+        return jsonify({"status": "success", "message": f"Cleared {deleted_count} files"})
+    except Exception as e:
+        dev_log(f"Error clearing storage: {e}", "ERROR")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+# ================================
+# 🔧 DEV TOOLS ROUTES
+# ================================
+@app.route("/dev/logs")
+def get_dev_logs():
+    """Get development logs"""
+    if not DEV_MODE:
+        return jsonify({"error": "Dev mode disabled"}), 403
+    return jsonify({"logs": dev_logs[-100:]})  # Return last 100 logs
+
+@app.route("/dev/storage/info")
+def get_storage_info():
+    """Get storage information"""
+    try:
+        total_size = 0
+        file_count = 0
+        
+        for file_path in DOWNLOAD_PATH.glob("*"):
+            if file_path.is_file():
+                total_size += file_path.stat().st_size
+                file_count += 1
+        
+        return jsonify({
+            "path": str(DOWNLOAD_PATH),
+            "file_count": file_count,
+            "total_size": total_size,
+            "total_size_formatted": format_file_size(total_size),
+            "free_space": get_free_space(),
+            "is_railway": bool(os.environ.get('RAILWAY_ENVIRONMENT'))
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/dev/session/info")
+def get_session_info():
+    """Get current session information"""
+    user_id = get_session_id()
+    progress_data = get_progress_data(user_id)
+    
+    return jsonify({
+        "session_id": user_id,
+        "session_data_keys": list(progress_data.keys()),
+        "cancel_flag": get_cancel_flag(user_id),
+        "active_sessions": len(user_sessions)
+    })
+
+def get_free_space():
+    """Get free space in storage directory"""
+    try:
+        if hasattr(os, 'statvfs'):
+            stat = os.statvfs(str(DOWNLOAD_PATH))
+            free = stat.f_bavail * stat.f_frsize
+            return format_file_size(free)
+    except:
+        pass
+    return "Unknown"
+
+# ================================
 # 🗑️ CLEANUP ROUTE (For Railway ephemeral storage)
 # ================================
 @app.route("/cleanup", methods=["POST"])
 def cleanup():
-    """Clean up downloaded files (useful for Railway's ephemeral storage)"""
+    """Clean up downloaded files"""
     try:
-        # Remove all files in download directory
+        deleted_count = 0
         for file_path in DOWNLOAD_PATH.glob("*"):
             try:
                 if file_path.is_file():
                     file_path.unlink()
-                    print(f"Cleaned up: {file_path}")
+                    deleted_count += 1
+                    dev_log(f"Cleaned up: {file_path.name}", "STORAGE")
             except Exception as e:
-                print(f"Failed to clean {file_path}: {e}")
+                dev_log(f"Failed to clean {file_path}: {e}", "ERROR")
         
-        return jsonify({"status": "success", "message": "Download directory cleaned"})
+        # Update all sessions
+        for user_id in user_sessions:
+            user_sessions[user_id]["local_files"] = []
+        
+        return jsonify({
+            "status": "success", 
+            "message": f"Cleaned {deleted_count} files",
+            "deleted_count": deleted_count
+        })
     except Exception as e:
+        dev_log(f"Cleanup error: {e}", "ERROR")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 # ================================
@@ -455,7 +710,12 @@ def cleanup():
 # ================================
 @app.route("/health")
 def health_check():
-    return jsonify({"status": "healthy", "service": "yt-downloader"})
+    return jsonify({
+        "status": "healthy", 
+        "service": "yt-downloader",
+        "storage_path": str(DOWNLOAD_PATH),
+        "file_count": len(list(DOWNLOAD_PATH.glob("*")))
+    })
 
 # ================================
 # 🚀 FAST PLAYLIST PREVIEW SUPPORT
@@ -470,12 +730,13 @@ def get_fast_playlist_info(url, user_id):
         ydl_opts = {
             'quiet': True,
             'no_warnings': True,
-            'extract_flat': True,  # ✅ This is the magic option
+            'extract_flat': True,
             'lazy_playlist': True,
             'ignoreerrors': True,
             'extract_flat': 'in_playlist',
             'nocheckcertificate': True,
             'proxy': '',
+            'cachedir': str(CACHE_PATH),
         }
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -502,7 +763,7 @@ def get_fast_playlist_info(url, user_id):
                         "id": entry.get('id', f'vid_{i}')
                     })
                 
-                print(f"🚀 [{user_id[:8]}] Fast playlist loaded: {total_count} videos")
+                dev_log(f"Fast playlist loaded: {total_count} videos", "PREVIEW")
                 
             else:
                 # Single video
@@ -514,7 +775,7 @@ def get_fast_playlist_info(url, user_id):
                     "id": info.get('id', 'single_video')
                 }]
                 total_count = 1
-                print(f"🎬 [{user_id[:8]}] Single video loaded (fast)")
+                dev_log(f"Single video loaded (fast)", "PREVIEW")
             
             return {
                 "total": total_count,
@@ -524,23 +785,23 @@ def get_fast_playlist_info(url, user_id):
             }
             
     except Exception as e:
-        print(f"❌ [{user_id[:8]}] Fast playlist error: {e}")
+        dev_log(f"Fast playlist error: {e}", "ERROR")
         return None
 
 # ================================
-# 🏁 RUN FLASK APP FOR RAILWAY
+# 🏁 RUN FLASK APP
 # ================================
 if __name__ == "__main__":
-    print("🚀 Starting YouTube Downloader on Railway...")
-    print(f"📁 Downloads will be saved to: {DOWNLOAD_PATH}")
-    print(f"🌐 Server will run on port: {PORT}")
-    print("🔧 Railway Optimizations:")
-    print("   - Ephemeral storage at /tmp")
-    print("   - Reduced concurrent downloads")
-    print("   - Certificate checking disabled")
-    print("   - Health check endpoint")
-    print("   - Cleanup route for file management")
-    print("🚀 Ready for Railway deployment!")
+    print("🚀 Starting YouTube Downloader...")
+    print(f"📁 Storage: {BASE_STORAGE_PATH}")
+    print(f"🔧 Dev Mode: {DEV_MODE}")
+    print(f"🌐 Port: {PORT}")
+    print("📱 Multi-device features enabled:")
+    print("   - Local storage scanning")
+    print("   - File management API")
+    print("   - Download history")
+    print("   - Dev tools endpoints")
+    print("🚀 Ready!")
     
     app.run(
         debug=os.environ.get('DEBUG', 'False').lower() == 'true',

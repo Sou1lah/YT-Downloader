@@ -1,8 +1,67 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>YouTube Downloader - Fixed Version</title>
+    <title>YouTube Downloader - Enhanced Version</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&family=Inter:wght@300;400;600;700&display=swap');
+        
+        /* CSS Properties for glowing border animation */
+        @property --hue {
+          syntax: "<number>";
+          inherits: true;
+          initial-value: 0;
+        }
+        @property --rotate {
+          syntax: "<number>";
+          inherits: true;
+          initial-value: 0;
+        }
+        @property --bg-y {
+          syntax: "<number>";
+          inherits: true;
+          initial-value: 0;
+        }
+        @property --bg-x {
+          syntax: "<number>";
+          inherits: true;
+          initial-value: 0;
+        }
+        @property --glow-translate-y {
+          syntax: "<number>";
+          inherits: true;
+          initial-value: 0;
+        }
+        @property --bg-size {
+          syntax: "<number>";
+          inherits: true;
+          initial-value: 0;
+        }
+        @property --glow-opacity {
+          syntax: "<number>";
+          inherits: true;
+          initial-value: 0;
+        }
+        @property --glow-blur {
+          syntax: "<number>";
+          inherits: true;
+          initial-value: 0;
+        }
+        @property --glow-scale {
+          syntax: "<number>";
+          inherits: true;
+          initial-value: 2;
+        }
+        @property --glow-radius {
+          syntax: "<number>";
+          inherits: true;
+          initial-value: 2;
+        }
+        @property --white-shadow {
+          syntax: "<number>";
+          inherits: true;
+          initial-value: 0;
+        }
+        
         :root {
             --ef-bg: #232a2e;
             --ef-bg-alt: #293136cc;
@@ -17,6 +76,12 @@
             --progress-orange: #ffb347;
             --progress-green: #4caf50;
             --progress-red: #e67e80;
+            
+            /* Enhanced card colors */
+            --card-bg: #1a0f2e;
+            --card-secondary: #2d1b4a;
+            --card-highlight: #88daf7;
+            --card-shadow: #016299;
         }
         
         * {
@@ -27,8 +92,8 @@
             height: 100%;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
-            background: linear-gradient(120deg, #232a2e 0%, #2d353b 100%);
+            font-family: 'Ubuntu Mono', 'Inter', monospace;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
             color: var(--ef-fg);
         }
         
@@ -38,12 +103,16 @@
             align-items: center;
             justify-content: flex-start;
             min-height: 100vh;
+            position: relative;
         }
 
         header {
             width: 100%;
             padding: 20px 0;
             margin-bottom: 20px;
+            background: linear-gradient(90deg, #232a2e55 0%, #2d353b55 100%);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #37424755;
         }
         
         .header-content {
@@ -53,12 +122,16 @@
         }
         
         .site-title {
-            font-size: 2.4rem;
-            font-weight: bold;
+            font-size: 2.8rem;
+            font-weight: 800;
             color: var(--ef-accent);
-            letter-spacing: 2px;
-            text-shadow: 1px 2px 8px #1a1f1e;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 20px rgba(167, 192, 128, 0.3);
             margin: 0;
+            background: linear-gradient(90deg, var(--ef-accent), var(--ef-accent3));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .container {
@@ -70,6 +143,8 @@
             justify-content: center;
             align-items: flex-start;
             padding: 0 20px;
+            position: relative;
+            z-index: 1;
         }
 
         .download-section, .playlist-section {
@@ -79,81 +154,100 @@
             background: var(--ef-bg-alt);
             border-radius: 20px;
             box-shadow: var(--ef-shadow);
-            padding: 25px;
+            padding: 30px;
             margin-bottom: 30px;
             backdrop-filter: blur(8px);
             border: 1px solid #37424755;
+            transition: transform 0.3s ease;
+        }
+
+        .download-section:hover, .playlist-section:hover {
+            transform: translateY(-5px);
         }
 
         form {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 12px;
+            gap: 15px;
         }
 
         input, select, button {
-            padding: 12px 16px;
+            padding: 14px 18px;
             width: 100%;
             max-width: 350px;
             font-size: 1rem;
             margin-bottom: 8px;
-            border-radius: 10px;
+            border-radius: 12px;
             border: none;
             outline: none;
-            background: #232a2e99;
+            background: linear-gradient(145deg, #1c2528, #293236);
             color: var(--ef-fg);
-            box-shadow: 2px 2px 8px #1a1f1e44;
-            transition: all 0.2s;
+            box-shadow: 4px 4px 12px #1a1f1e44, -4px -4px 12px #2d353b22;
+            transition: all 0.3s ease;
         }
         
         input:focus, select:focus {
-            box-shadow: 0 0 0 2px var(--ef-accent3);
-            background: #2d353bcc;
+            box-shadow: 0 0 0 3px var(--ef-accent3), 4px 4px 12px #1a1f1e44;
+            background: linear-gradient(145deg, #253036, #2f3a40);
         }
         
         button {
-            background: var(--ef-accent3);
-            color: #232a2e;
-            font-weight: bold;
+            background: linear-gradient(90deg, var(--ef-accent3), var(--ef-accent));
+            color: #1a1f1e;
+            font-weight: 700;
             cursor: pointer;
             border: none;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        button:hover::before {
+            left: 100%;
         }
         
         button:hover:not(:disabled) {
-            background: #7fbbb3cc;
-        }
-        
-        button:active:not(:disabled) {
-            background: var(--ef-accent2);
-            color: #fff;
+            background: linear-gradient(90deg, var(--ef-accent3), #8fd1c8);
+            box-shadow: 0 8px 20px rgba(127, 187, 179, 0.4);
         }
         
         #download-btn:disabled {
-            background: #495156;
+            background: linear-gradient(145deg, #3a4448, #495156);
             color: #b3b9b8;
             cursor: not-allowed;
         }
 
         .cancel-btn {
-            background: var(--ef-accent2);
+            background: linear-gradient(90deg, var(--ef-accent2), #f1898b);
             color: #fff;
-            font-weight: bold;
+            font-weight: 700;
         }
         
         .cancel-btn:hover {
-            background: #e67e80cc;
+            background: linear-gradient(90deg, var(--ef-accent2), #f1898b);
+            box-shadow: 0 8px 20px rgba(230, 126, 128, 0.4);
         }
 
         #loading {
             display: none;
-            margin: 10px;
+            margin: 15px;
             font-weight: bold;
             color: var(--ef-accent3);
         }
 
         .progress-section {
-            margin-top: 20px;
+            margin-top: 25px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -163,48 +257,52 @@
         progress {
             width: 100%;
             max-width: 350px;
-            height: 16px;
-            border-radius: 10px;
-            background: #232a2e99;
+            height: 18px;
+            border-radius: 12px;
+            background: linear-gradient(145deg, #1c2528, #293236);
             overflow: hidden;
+            box-shadow: inset 2px 2px 4px #1a1f1e44;
         }
         
         progress::-webkit-progress-bar {
-            background: #232a2e99;
-            border-radius: 10px;
+            background: linear-gradient(145deg, #1c2528, #293236);
+            border-radius: 12px;
         }
         
         progress::-webkit-progress-value {
             background: linear-gradient(90deg, var(--ef-accent3), var(--ef-accent));
-            border-radius: 10px;
-            transition: width 0.3s ease;
+            border-radius: 12px;
+            transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         
         progress::-moz-progress-bar {
             background: linear-gradient(90deg, var(--ef-accent3), var(--ef-accent));
-            border-radius: 10px;
+            border-radius: 12px;
         }
 
         #progress-label {
-            margin-top: 8px;
-            font-size: 1rem;
+            margin-top: 12px;
+            font-size: 1.1rem;
             font-weight: bold;
             color: var(--ef-accent);
-            transition: color 0.2s;
+            transition: color 0.3s;
         }
 
         #download-info {
-            margin-top: 8px;
-            font-size: 0.9rem;
-            font-weight: bold;
+            margin-top: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
             color: var(--ef-fg-muted);
             text-align: center;
-            min-height: 20px;
+            min-height: 22px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
         }
 
         .playlist-box {
             border-radius: 20px;
-            padding: 20px;
+            padding: 25px;
             max-height: 500px;
             overflow-y: auto;
             background: var(--ef-bg-alt);
@@ -213,39 +311,58 @@
         }
 
         .playlist-title {
-            font-size: 1.2rem;
+            font-size: 1.4rem;
             font-weight: bold;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             text-align: center;
             color: var(--ef-accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
 
         .video-item {
             display: flex;
             align-items: center;
-            padding: 10px;
-            margin: 6px 0;
-            background: #232a2e99;
+            padding: 12px 15px;
+            margin: 8px 0;
+            background: linear-gradient(145deg, #1c2528, #293236);
             border-radius: 12px;
-            border-left: 4px solid var(--ef-accent3);
-            transition: all 0.2s;
+            border-left: 5px solid var(--ef-accent3);
+            transition: all 0.3s ease;
+            box-shadow: 2px 2px 6px #1a1f1e33;
+        }
+
+        .video-item:hover {
+            transform: translateX(5px);
+            border-left-color: var(--ef-accent);
         }
 
         .video-item.downloaded {
             border-left-color: var(--ef-accent);
-            background: #2d353bcc;
+            background: linear-gradient(145deg, #253036, #2f3a40);
         }
 
         .video-item.current {
             border-left-color: var(--ef-accent2);
-            background: #374247cc;
+            background: linear-gradient(145deg, #303a40, #3a464d);
             animation: pulse 2s infinite;
         }
 
         @keyframes pulse {
-            0% { border-left-color: var(--ef-accent2); }
-            50% { border-left-color: var(--ef-accent3); }
-            100% { border-left-color: var(--ef-accent2); }
+            0% { 
+                border-left-color: var(--ef-accent2);
+                box-shadow: 0 0 10px rgba(230, 126, 128, 0.3);
+            }
+            50% { 
+                border-left-color: var(--ef-accent3);
+                box-shadow: 0 0 15px rgba(127, 187, 179, 0.5);
+            }
+            100% { 
+                border-left-color: var(--ef-accent2);
+                box-shadow: 0 0 10px rgba(230, 126, 128, 0.3);
+            }
         }
 
         .video-info {
@@ -253,53 +370,74 @@
         }
 
         .video-title {
-            font-weight: bold;
+            font-weight: 600;
             margin-bottom: 4px;
-            color: var(--ef-accent3);
-            font-size: 0.9rem;
-            line-height: 1.3;
+            color: var(--ef-fg);
+            font-size: 0.95rem;
+            line-height: 1.4;
         }
 
         .video-duration {
-            font-size: 11px;
+            font-size: 12px;
             color: var(--ef-fg-muted);
+            font-weight: 500;
         }
 
         .status-icon {
-            margin-left: 8px;
-            font-size: 16px;
+            margin-left: 10px;
+            font-size: 18px;
         }
 
         .checkmark {
             color: var(--ef-accent);
+            animation: checkPulse 1s ease;
+        }
+
+        @keyframes checkPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
         }
 
         .current-dot {
             color: var(--ef-accent2);
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
         }
 
         .tabs {
             display: flex;
-            margin-bottom: 15px;
-            border-radius: 10px;
-            background: #232a2e99;
-            padding: 4px;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            background: linear-gradient(145deg, #1c2528, #293236);
+            padding: 6px;
+            box-shadow: inset 2px 2px 4px #1a1f1e44;
         }
 
         .tab {
             flex: 1;
-            padding: 8px;
+            padding: 10px;
             text-align: center;
             cursor: pointer;
-            border-radius: 6px;
-            transition: background 0.2s;
-            font-size: 0.9rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .tab:hover {
+            background: rgba(127, 187, 179, 0.2);
         }
 
         .tab.active {
-            background: var(--ef-accent3);
-            color: #232a2e;
-            font-weight: bold;
+            background: linear-gradient(90deg, var(--ef-accent3), var(--ef-accent));
+            color: #1a1f1e;
+            font-weight: 700;
+            box-shadow: 2px 2px 6px #1a1f1e44;
         }
 
         .tab-content {
@@ -312,67 +450,490 @@
 
         /* Scrollbar styling */
         .playlist-box::-webkit-scrollbar {
-            width: 6px;
+            width: 8px;
         }
         
         .playlist-box::-webkit-scrollbar-thumb {
-            background: #374247cc;
-            border-radius: 6px;
+            background: linear-gradient(to bottom, var(--ef-accent3), var(--ef-accent));
+            border-radius: 8px;
         }
         
         .playlist-box::-webkit-scrollbar-track {
             background: #232a2e99;
+            border-radius: 8px;
         }
 
-        .error-message {
-            color: var(--ef-accent2);
-            background: #e67e8020;
-            padding: 10px;
-            border-radius: 8px;
-            margin: 10px 0;
-            text-align: center;
-            border: 1px solid #e67e8040;
+        /* ================== ENHANCED INTERACTIVE CARD ================== */
+        .interactive-card-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 400px;
+            height: 240px;
+            perspective: 1000px;
+            z-index: 100;
+            cursor: pointer;
+        }
+        
+        .interactive-card-container:hover > .interactive-card::before {
+            --bg-size: 15;
+            animation-play-state: paused;
+            transition: --bg-size 0.55s ease;
+        }
+        
+        .interactive-card-container:hover > .interactive-card .glow {
+            --glow-blur: 1.5;
+            --glow-opacity: 0.6;
+            --glow-scale: 2.5;
+            --glow-radius: 0;
+            --rotate: 900;
+            --glow-rotate-unit: 0;
+            --scale-factor: 1.25;
+            animation-play-state: paused;
+        }
+        
+        .interactive-card-container:hover > .interactive-card .glow::after {
+            --glow-translate-y: 0;
+            animation-play-state: paused;
+            transition: --glow-translate-y 0s ease, --glow-blur 0.05s ease,
+              --glow-opacity 0.05s ease, --glow-scale 0.05s ease,
+              --glow-radius 0.05s ease;
         }
 
-        .success-message {
-            color: var(--ef-accent);
-            background: #a7c08020;
-            padding: 10px;
-            border-radius: 8px;
-            margin: 10px 0;
+        .hover-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 0;
+            padding: 0;
+            border-radius: 0;
+            pointer-events: auto;
+            z-index: 10;
+        }
+
+        .hover-cell {
+            background: transparent;
+            border-radius: 0;
+            border: none;
+            transition: none;
+            cursor: pointer;
+            position: relative;
+            overflow: visible;
+            pointer-events: auto;
+        }
+
+        /* Hover rotations - slight tilt based on position */
+        .interactive-card-container:has(.tl:hover) .interactive-card { 
+            transform: rotateX(8deg) rotateY(-8deg); 
+        }
+        .interactive-card-container:has(.tl:hover) .interactive-card.flipped { 
+            transform: rotateY(180deg) rotateX(8deg) rotateY(-8deg); 
+        }
+        .interactive-card-container:has(.tc:hover) .interactive-card { 
+            transform: rotateX(10deg); 
+        }
+        .interactive-card-container:has(.tc:hover) .interactive-card.flipped { 
+            transform: rotateY(180deg) rotateX(10deg); 
+        }
+        .interactive-card-container:has(.tr:hover) .interactive-card { 
+            transform: rotateX(8deg) rotateY(8deg); 
+        }
+        .interactive-card-container:has(.tr:hover) .interactive-card.flipped { 
+            transform: rotateY(180deg) rotateX(8deg) rotateY(8deg); 
+        }
+        .interactive-card-container:has(.cl:hover) .interactive-card { 
+            transform: rotateY(-10deg); 
+        }
+        .interactive-card-container:has(.cl:hover) .interactive-card.flipped { 
+            transform: rotateY(180deg) rotateY(-10deg); 
+        }
+        .interactive-card-container:has(.cr:hover) .interactive-card { 
+            transform: rotateY(10deg); 
+        }
+        .interactive-card-container:has(.cr:hover) .interactive-card.flipped { 
+            transform: rotateY(180deg) rotateY(10deg); 
+        }
+        .interactive-card-container:has(.bl:hover) .interactive-card { 
+            transform: rotateX(-8deg) rotateY(-8deg); 
+        }
+        .interactive-card-container:has(.bl:hover) .interactive-card.flipped { 
+            transform: rotateY(180deg) rotateX(-8deg) rotateY(-8deg); 
+        }
+        .interactive-card-container:has(.bc:hover) .interactive-card { 
+            transform: rotateX(-10deg); 
+        }
+        .interactive-card-container:has(.bc:hover) .interactive-card.flipped { 
+            transform: rotateY(180deg) rotateX(-10deg); 
+        }
+        .interactive-card-container:has(.br:hover) .interactive-card { 
+            transform: rotateX(-8deg) rotateY(8deg); 
+        }
+        .interactive-card-container:has(.br:hover) .interactive-card.flipped { 
+            transform: rotateY(180deg) rotateX(-8deg) rotateY(8deg); 
+        }
+        
+        /* Reset rotation when hovering over center (where links are) */
+        .interactive-card-container:has(.cc:hover) .interactive-card { 
+            transform: rotateX(0deg) rotateY(0deg); 
+        }
+        .interactive-card-container:has(.cc:hover) .interactive-card.flipped { 
+            transform: rotateY(180deg); 
+        }
+
+
+
+
+
+        .interactive-card {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.4s ease-out;
+            cursor: pointer;
+            border-radius: 20px;
+            pointer-events: auto;
+            z-index: 5;
+        }
+        
+        .interactive-card.flipped {
+            transform: rotateY(180deg) !important;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+        }
+        
+        .interactive-card.flipped.rotate-tl {
+            transform: rotateY(180deg) rotateX(8deg) rotateY(-8deg) !important;
+        }
+        .interactive-card.flipped.rotate-tc {
+            transform: rotateY(180deg) rotateX(10deg) !important;
+        }
+        .interactive-card.flipped.rotate-tr {
+            transform: rotateY(180deg) rotateX(8deg) rotateY(8deg) !important;
+        }
+        .interactive-card.flipped.rotate-cl {
+            transform: rotateY(180deg) rotateY(-10deg) !important;
+        }
+        .interactive-card.flipped.rotate-cr {
+            transform: rotateY(180deg) rotateY(10deg) !important;
+        }
+        .interactive-card.flipped.rotate-bl {
+            transform: rotateY(180deg) rotateX(-8deg) rotateY(-8deg) !important;
+        }
+        .interactive-card.flipped.rotate-bc {
+            transform: rotateY(180deg) rotateX(-10deg) !important;
+        }
+        .interactive-card.flipped.rotate-br {
+            transform: rotateY(180deg) rotateX(-8deg) rotateY(8deg) !important;
+        }
+        .interactive-card.flipped.rotate-cc {
+            transform: rotateY(180deg) !important;
+        }
+
+        .interactive-card::before {
+            content: "";
+            position: absolute;
+            inset: -3px;
+            border-radius: 20px;
+            padding: 3px;
+            background: hsl(0deg 0% 16%)
+                radial-gradient(
+                    30% 30% at calc(var(--bg-x) * 1%) calc(var(--bg-y) * 1%),
+                    hsl(calc(calc(var(--hue) * 1) * 1deg) 100% 90%)
+                        calc(0% * var(--bg-size)),
+                    hsl(calc(calc(var(--hue) * 1) * 1deg) 100% 80%)
+                        calc(20% * var(--bg-size)),
+                    hsl(calc(calc(var(--hue) * 1) * 1deg) 100% 60%)
+                        calc(40% * var(--bg-size)),
+                    transparent 100%
+                );
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            animation: hue-animation 4s linear infinite, rotate-bg 4s linear infinite;
+            pointer-events: none;
+            z-index: -1;
+            transition: --bg-size 0.55s ease;
+        }
+
+        .interactive-card .glow {
+            --glow-translate-y: -65;
+            display: block;
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            animation: rotate 4s linear infinite;
+            transform: rotateZ(calc(var(--rotate) * 1deg));
+            transform-origin: center;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            margin-left: -50px;
+            margin-top: -50px;
+            z-index: -2;
+            pointer-events: none;
+            transition: --glow-blur 0.05s ease, --glow-opacity 0.05s ease, --glow-scale 0.05s ease, --glow-radius 0.05s ease;
+        }
+
+
+        .interactive-card.flipped {
+            transform: rotateY(180deg) !important;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+        }
+
+        .front, .back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 20px;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .front {
+            background: linear-gradient(135deg, #0a0a0c 0%, #10181a 80%, #0a1a14 100%);
+            box-shadow: 0 6px 24px rgba(0, 16, 8, 0.85);
+        }
+
+        .back {
+            background: linear-gradient(135deg, #0a0a0c 0%, #10181a 80%, #0a1a14 100%);
+            transform: rotateY(180deg);
+            box-shadow: 0 6px 24px rgba(0, 16, 8, 0.85);
+        /* Shiny animated gradient hover effect for profile text */
+        .card-shiny {
+            background: linear-gradient(90deg, #a7c080 0%, #7fbbb3 50%, #e67e80 100%);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            color: transparent;
+            transition: background-position 0.5s, filter 0.3s;
+        }
+        .card-shiny:hover {
+            background-position: 100% 0;
+            filter: drop-shadow(0 0 8px #a7c08088);
+        }
+        }
+
+        .card-title {
+            margin: 0 0 15px 0;
+            font-size: 1.8rem;
+            font-weight: 700;
             text-align: center;
-            border: 1px solid #a7c08040;
+            color: white;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-subtitle {
+            margin: 0 0 25px 0;
+            font-size: 1rem;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Colored tech icons */
+        .tech-icons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .tech-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .tech-icon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .tech-icon:hover {
+            transform: translateY(-5px) scale(1.1);
+        }
+
+        .tech-icon:hover::before {
+            transform: translateX(0);
+        }
+
+        /* Individual brand colors */
+        .html5 { background: linear-gradient(135deg, #E34F26, #E44D26); }
+        .css3 { background: linear-gradient(135deg, #1572B6, #33A9DC); }
+        .js { background: linear-gradient(135deg, #F7DF1E, #F0DB4F); color: #323330 !important; }
+        .bootstrap { background: linear-gradient(135deg, #7952B3, #563D7C); }
+        .sass { background: linear-gradient(135deg, #CC6699, #CD6799); }
+        .node { background: linear-gradient(135deg, #339933, #68A063); }
+        .git { background: linear-gradient(135deg, #F1502F, #F34F29); }
+        .gulp { background: linear-gradient(135deg, #CF4647, #DA4648); }
+        .php { background: linear-gradient(135deg, #777BB4, #8892BF); }
+        .figma { background: linear-gradient(135deg, #F24E1E, #FF7262); }
+
+        /* Social icons */
+        .social-icons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .social-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #2a394f, #001c55);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            text-decoration: none;
+            border: none;
+        }
+
+        .social-icon:hover {
+            transform: translateY(-5px) scale(1.1);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Flip button */
+        .flip-btn {
+            display: none;
+        }
+
+        /* Glowing border animations */
+        @keyframes shadow-pulse {
+            0%,
+            24%,
+            46%,
+            73%,
+            96% {
+                --white-shadow: 0.5;
+            }
+            12%,
+            28%,
+            41%,
+            63%,
+            75%,
+            82%,
+            98% {
+                --white-shadow: 2.5;
+            }
+            6%,
+            32%,
+            57% {
+                --white-shadow: 1.3;
+            }
+            18%,
+            52%,
+            88% {
+                --white-shadow: 3.5;
+            }
+        }
+
+        @keyframes rotate-bg {
+            0% {
+                --bg-x: 0;
+                --bg-y: 0;
+            }
+            25% {
+                --bg-x: 100;
+                --bg-y: 0;
+            }
+            50% {
+                --bg-x: 100;
+                --bg-y: 100;
+            }
+            75% {
+                --bg-x: 0;
+                --bg-y: 100;
+            }
+            100% {
+                --bg-x: 0;
+                --bg-y: 0;
+            }
+        }
+
+        @keyframes rotate {
+            from {
+                --rotate: -70;
+                --glow-translate-y: -65;
+            }
+            to {
+                --rotate: calc(360 - 70);
+                --glow-translate-y: -65;
+            }
+        }
+
+        @keyframes hue-animation {
+            0% {
+                --hue: 0;
+            }
+            100% {
+                --hue: 360;
+            }
         }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <header>
         <div class="header-content">
             <div class="site-title">🎥 YouTube Downloader</div>
-            <div style="color: var(--ef-fg-muted); margin-top: 5px;">Fixed Version - Stable & Fast</div>
+            <div style="color: var(--ef-fg-muted); margin-top: 5px; font-size: 1.1rem;">Enhanced Version • Fast & Stable</div>
         </div>
     </header>
 
     <div class="container">
         <div class="download-section">
             <form method="POST" action="/download" id="download-form">
-                <input type="text" name="url" placeholder="Paste YouTube URL or Playlist URL here" required>
+                <input type="text" name="url" placeholder="🔗 Paste YouTube URL or Playlist URL here" required>
                 <select name="download_type" id="download_type">
-                    <option value="video" selected>Video</option>
-                    <option value="audio">Audio</option>
+                    <option value="video" selected>🎬 Video</option>
+                    <option value="audio">🎵 Audio</option>
                 </select>
                 <select name="quality" id="quality">
-                    <option value="360" data-type="video">360p</option>
-                    <option value="720" data-type="video" selected>720p</option>
-                    <option value="1080" data-type="video">1080p</option>
-                    <option value="160" data-type="audio">160k (Audio)</option>
-                    <option value="256" data-type="audio">256k (Audio)</option>
-                    <option value="320" data-type="audio">320k (Audio)</option>
+                    <option value="360" data-type="video">📹 360p</option>
+                    <option value="720" data-type="video" selected>📹 720p HD</option>
+                    <option value="1080" data-type="video">📹 1080p Full HD</option>
+                    <option value="160" data-type="audio">🎵 160kbps</option>
+                    <option value="256" data-type="audio">🎵 256kbps</option>
+                    <option value="320" data-type="audio">🎵 320kbps High Quality</option>
                 </select>
-                <button type="submit" id="download-btn">Download</button>
+                <button type="submit" id="download-btn">🚀 Download Now</button>
             </form>
             
-            <button type="button" id="cancel-btn" class="cancel-btn" style="display:none;">Cancel Download</button>
+            <button type="button" id="cancel-btn" class="cancel-btn" style="display:none;">⏹️ Cancel Download</button>
             <div id="loading" style="display:none;">⏳ Processing...</div>
             
             <div class="progress-section">
@@ -384,16 +945,17 @@
         
         <div class="playlist-section">
             <div class="playlist-box">
-                <div class="playlist-title">📋 Download Queue</div>
+                <div class="playlist-title"><i class="fas fa-list-check"></i> Download Queue</div>
                 
                 <div class="tabs">
-                    <div class="tab active" data-tab="current">Current</div>
-                    <div class="tab" data-tab="downloaded">Downloaded</div>
+                    <div class="tab active" data-tab="current">🔄 Current</div>
+                    <div class="tab" data-tab="downloaded">✅ Downloaded</div>
                 </div>
                 
                 <div id="current-queue" class="tab-content active">
                     <div id="playlist-display">
                         <div style="text-align: center; color: #859289; padding: 20px;">
+                            <i class="fas fa-link" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
                             Enter a YouTube URL to see your video/playlist info
                         </div>
                     </div>
@@ -402,6 +964,7 @@
                 <div id="downloaded-list" class="tab-content">
                     <div id="downloaded-display">
                         <div style="text-align: center; color: #859289; padding: 20px;">
+                            <i class="fas fa-download" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
                             No videos downloaded yet
                         </div>
                     </div>
@@ -409,8 +972,104 @@
             </div>
         </div>
     </div>
+    
+    <!-- Enhanced Interactive Card -->
+    <div class="interactive-card-container">
+        <div class="hover-grid">
+            <!-- Row 1 -->
+            <div class="hover-cell tl"></div>
+            <div class="hover-cell tc"></div>
+            <div class="hover-cell tc"></div>
+            <div class="hover-cell tc"></div>
+            <div class="hover-cell tr"></div>
+            <!-- Row 2 -->
+            <div class="hover-cell cl"></div>
+            <div class="hover-cell cc"></div>
+            <div class="hover-cell cc"></div>
+            <div class="hover-cell cc"></div>
+            <div class="hover-cell cr"></div>
+            <!-- Row 3 -->
+            <div class="hover-cell cl"></div>
+            <div class="hover-cell cc"></div>
+            <div class="hover-cell cc"></div>
+            <div class="hover-cell cc"></div>
+            <div class="hover-cell cr"></div>
+            <!-- Row 4 -->
+            <div class="hover-cell cl"></div>
+            <div class="hover-cell cc"></div>
+            <div class="hover-cell cc"></div>
+            <div class="hover-cell cc"></div>
+            <div class="hover-cell cr"></div>
+            <!-- Row 5 -->
+            <div class="hover-cell bl"></div>
+            <div class="hover-cell bc"></div>
+            <div class="hover-cell bc"></div>
+            <div class="hover-cell bc"></div>
+            <div class="hover-cell br"></div>
+        </div>
+        
+        <div class="interactive-card" id="card">
+            <span class="glow"></span>
+            <div class="front">
+                <div style="display: flex; flex-direction: column; gap: 10px; align-items: center; width: 100%; height: 100%; justify-content: space-between; padding: 10px 0;">
+                    <div style="display: flex; gap: 15px; align-items: flex-start; width: 100%; padding: 0 10px;">
+                        <div style="flex-shrink: 0;">
+                            <img src="https://i.pinimg.com/736x/ef/65/46/ef6546894807bde3619d0bcf4d583c71.jpg" alt="Profile" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);">
+                        </div>
+                        <div style="flex: 1; text-align: left; display: flex; flex-direction: column; justify-content: flex-start;">
+                            <h2 class="card-shiny" style="margin: 0 0 5px 0; font-size: 1.3rem; font-weight: 700;">Souilah Ahmed Wael</h2>
+                            <div style="font-size: 0.85rem; line-height: 1.6;">
+                                <div class="card-shiny"> Age : 20 years old</div>
+                                <div class="card-shiny"> Uni : Badji Mokhtar Annaba</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px; justify-content: center; width: 100%; flex-wrap: wrap; margin-bottom: 5px; padding: 0 10px;">
+                        <a href="https://github.com/Sou1lah" target="_blank" rel="noopener noreferrer" title="GitHub" onclick="event.stopPropagation()" style="width: 45px; height: 45px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; color: white; background: linear-gradient(135deg, #2a394f, #001c55); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: all 0.3s ease; text-decoration: none; border: none; cursor: pointer;">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        <a href="https://x.com/wael_souilah" target="_blank" rel="noopener noreferrer" title="X" style="width: 45px; height: 45px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; color: white; background: linear-gradient(135deg, #1d1d1d, #333); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: all 0.3s ease; text-decoration: none; border: none; cursor: pointer;">
+                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.514l-5.106-6.694-5.934 6.694H2.422l7.723-8.835L1.254 2.25h6.554l4.6 6.084 5.514-6.084zM17.534 20.766h1.832L6.455 3.812H4.527l13.007 16.954z'/%3E%3C/svg%3E" alt="X" style="width: 20px; height: 20px;">
+                        </a>
+                        <a href="https://www.instagram.com/waaaeeelll_08/" target="_blank" rel="noopener noreferrer" title="Instagram" onclick="event.stopPropagation()" style="width: 45px; height: 45px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; color: white; background: linear-gradient(135deg, #e74c3c, #e8405a); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: all 0.3s ease; text-decoration: none; border: none; cursor: pointer;">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="https://linkedin.com/in/souilah-ahmed-wael" target="_blank" rel="noopener noreferrer" title="LinkedIn" onclick="event.stopPropagation()" style="width: 45px; height: 45px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; color: white; background: linear-gradient(135deg, #0077b5, #004182); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: all 0.3s ease; text-decoration: none; border: none; cursor: pointer;">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                        <a href="mailto:ahmedsouilah572@gmail.com" title="Email" onclick="event.stopPropagation()" style="width: 45px; height: 45px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; color: white; background: linear-gradient(135deg, #d32f2f, #f57c00); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: all 0.3s ease; text-decoration: none; border: none; cursor: pointer;">
+                            <i class="fas fa-envelope"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="back">
+                <div class="tech-icons">
+                    <div class="tech-icon html5" title="HTML5"><i class="fab fa-html5"></i></div>
+                    <div class="tech-icon css3" title="CSS3"><i class="fab fa-css3"></i></div>
+                    <div class="tech-icon js" title="JavaScript"><i class="fab fa-js"></i></div>
+                    <div class="tech-icon bootstrap" title="Bootstrap"><i class="fab fa-bootstrap"></i></div>
+                    <div class="tech-icon sass" title="Sass"><i class="fab fa-sass"></i></div>
+                    <div class="tech-icon node" title="Node.js"><i class="fab fa-node-js"></i></div>
+                    <div class="tech-icon git" title="Git"><i class="fab fa-git"></i></div>
+                    <div class="tech-icon gulp" title="Gulp"><i class="fab fa-gulp"></i></div>
+                    <div class="tech-icon php" title="PHP"><i class="fab fa-php"></i></div>
+                    <div class="tech-icon figma" title="Figma"><i class="fab fa-figma"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
+        // Check CSS.registerProperty support
+        if (typeof window.CSS.registerProperty === 'function') {
+            console.log('CSS.registerProperty supported 🎉')
+            document.body.classList.add('registerProperty-supported')
+        } else {
+            console.log('CSS.registerProperty not supported ❌')
+            document.body.classList.add('registerProperty-not-supported')
+        }
+
         // DOM Elements
         const downloadForm = document.getElementById("download-form");
         const downloadBtn = document.getElementById("download-btn");
@@ -421,13 +1080,48 @@
         const downloadInfo = document.getElementById("download-info");
         const downloadType = document.getElementById("download_type");
         const quality = document.getElementById("quality");
+        const card = document.getElementById("card");
+        const flipBtn = document.getElementById("flipBtn");
 
         // State
         let isDownloading = false;
         let pollInterval = null;
-        // --- NEW: Preview state ---
         let previewTimeout = null;
         let currentPreviewUrl = '';
+
+        // Card interaction - click to flip
+        document.querySelector('.interactive-card-container').addEventListener('click', (e) => {
+            const card = document.getElementById("card");
+            if (e.target.closest('a') || e.target.closest('button') || e.target.tagName === 'A') {
+                return;
+            }
+            card.classList.toggle('flipped');
+        });
+
+        card.addEventListener('click', (e) => {
+            if (e.target.closest('a') || e.target.closest('button') || e.target.tagName === 'A') {
+                return;
+            }
+            card.classList.toggle('flipped');
+        });
+
+        // Hover rotation for both front and back
+        const hoverGrid = document.querySelector('.hover-grid');
+        const cardEl = document.getElementById('card');
+        const hoverClasses = ['tl','tc','tr','cl','cr','bl','bc','br','cc'];
+        hoverGrid.querySelectorAll('.hover-cell').forEach(cell => {
+            hoverClasses.forEach(cls => {
+                if (cell.classList.contains(cls)) {
+                    cell.addEventListener('mouseenter', () => {
+                        cardEl.classList.remove(...hoverClasses.map(c => 'rotate-' + c));
+                        cardEl.classList.add('rotate-' + cls);
+                    });
+                    cell.addEventListener('mouseleave', () => {
+                        cardEl.classList.remove('rotate-' + cls);
+                    });
+                }
+            });
+        });
 
         // Filter quality options based on download type
         function filterQualityOptions() {
@@ -435,7 +1129,6 @@
             Array.from(quality.options).forEach(opt => {
                 opt.style.display = (opt.getAttribute("data-type") === type) ? "" : "none";
             });
-            // Select first visible option
             for (let opt of quality.options) {
                 if (opt.style.display !== "none") {
                     quality.value = opt.value;
@@ -471,7 +1164,9 @@
             loading.style.display = "none";
             
             document.getElementById("playlist-display").innerHTML = 
-                '<div style="text-align: center; color: #859289; padding: 20px;">Enter a YouTube URL to see your video/playlist info</div>';
+                '<div style="text-align: center; color: #859289; padding: 20px;">' +
+                '<i class="fas fa-link" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>' +
+                'Enter a YouTube URL to see your video/playlist info</div>';
             
             isDownloading = false;
             
@@ -547,12 +1242,10 @@
                     return response.json();
                 })
                 .then(data => {
-                    // Update progress bar
                     const overallPercent = data.overall_percent || 0;
                     progressBar.value = overallPercent;
                     progressLabel.textContent = `${overallPercent.toFixed(1)}%`;
                     
-                    // Update colors based on status
                     if (data.status === "error" || data.status === "canceled") {
                         progressLabel.style.color = "var(--progress-red)";
                     } else if (data.status === "finished") {
@@ -563,10 +1256,9 @@
                         progressLabel.style.color = "var(--ef-accent)";
                     }
                     
-                    // Update download info text
                     let infoText = "";
                     if (data.status === "downloading") {
-                        infoText = `Downloading: ${data.current_download || data.title || "Video"}`;
+                        infoText = `📥 Downloading: ${data.current_download || data.title || "Video"}`;
                         if (data.current !== undefined && data.total !== undefined) {
                             infoText += ` (${data.current + 1}/${data.total})`;
                         }
@@ -588,17 +1280,14 @@
                     }
                     downloadInfo.textContent = infoText;
                     
-                    // Update playlist display
                     if (data.playlist_info && data.playlist_info.length > 0) {
                         updatePlaylistDisplay(data.playlist_info, data.current || 0, data.current_download);
                     }
                     
-                    // Update downloaded videos list
                     if (data.downloaded_videos && data.downloaded_videos.length > 0) {
                         updateDownloadedDisplay(data.downloaded_videos);
                     }
                     
-                    // Handle finished states
                     if (data.status === "finished" || data.status === "error" || data.status === "canceled") {
                         isDownloading = false;
                         cancelBtn.style.display = "none";
@@ -610,7 +1299,6 @@
                             pollInterval = null;
                         }
                         
-                        // Auto-reset after delay for finished state
                         if (data.status === "finished") {
                             setTimeout(() => {
                                 if (!isDownloading) {
@@ -626,7 +1314,7 @@
                 });
         }
 
-        // --- NEW: Instant playlist preview ---
+        // Instant playlist preview
         function previewPlaylist(url) {
             if (!url || (!url.includes('youtube.com') && !url.includes('youtu.be'))) {
                 return;
@@ -634,12 +1322,10 @@
             
             currentPreviewUrl = url;
             
-            // Clear previous timeout
             if (previewTimeout) {
                 clearTimeout(previewTimeout);
             }
             
-            // Wait for user to stop typing (500ms delay)
             previewTimeout = setTimeout(() => {
                 fetch("/preview_playlist", {
                     method: "POST",
@@ -651,18 +1337,14 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Update UI with instant playlist info
                         updatePlaylistDisplay(data.playlist_info, -1, '');
                         downloadInfo.textContent = `📋 Loaded: ${data.title} (${data.total} videos)`;
                         
-                        // Show success message briefly
                         setTimeout(() => {
                             if (downloadInfo.textContent.includes('Loaded:')) {
                                 downloadInfo.textContent = '✅ Playlist loaded - Ready to download';
                             }
                         }, 2000);
-                    } else {
-                        console.log("Preview failed, will load normally during download");
                     }
                 })
                 .catch(error => {
@@ -671,7 +1353,7 @@
             }, 500);
         }
 
-        // --- UPDATED: Form submission handler to use preview state ---
+        // Form submission handler
         downloadForm.addEventListener("submit", function(e) {
             e.preventDefault();
             
@@ -688,27 +1370,22 @@
                 return;
             }
             
-            // If we have a different URL than preview, reset
             if (url !== currentPreviewUrl) {
                 document.getElementById("playlist-display").innerHTML = 
                     '<div style="text-align: center; color: #859289; padding: 20px;">Processing playlist...</div>';
             }
             
-            // Reset UI for new download
             resetUI();
             isDownloading = true;
             
-            // Show loading state
             loading.style.display = "block";
             cancelBtn.style.display = "block";
             downloadBtn.disabled = true;
             downloadInfo.textContent = "🚀 Starting download...";
             
-            // Start polling
             if (pollInterval) clearInterval(pollInterval);
             pollInterval = setInterval(pollProgress, 1000);
             
-            // Send download request
             fetch("/download", {
                 method: "POST",
                 body: formData
@@ -751,9 +1428,7 @@
             fetch("/cancel", {
                 method: "POST"
             })
-            .then(response => {
-                // Cancel request sent - progress polling will update the UI
-            })
+            .then(response => {})
             .catch(error => {
                 console.error("Cancel error:", error);
                 downloadInfo.textContent = "❌ Failed to cancel download";
@@ -767,16 +1442,14 @@
             setupTabs();
             resetUI();
             
-            // Set up event listeners
             downloadType.addEventListener("change", filterQualityOptions);
 
-            // 🚀 NEW: Add instant playlist preview on URL input
             const urlInput = document.querySelector('input[name="url"]');
             urlInput.addEventListener('input', function(e) {
                 previewPlaylist(e.target.value);
             });
             
-            console.log("YouTube Downloader UI initialized - with instant preview!");
+            console.log("YouTube Downloader UI initialized - Enhanced Version!");
         }
 
         // Start the application when DOM is loaded
