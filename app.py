@@ -1,7 +1,7 @@
 # ================================
 # 🚀 IMPORTS & FLASK SETUP
 # ================================
-from flask import Flask, request, render_template, jsonify, session
+from flask import Flask, request, render_template, jsonify, session, send_from_directory
 import yt_dlp
 import re
 import threading
@@ -12,10 +12,21 @@ import uuid
 from datetime import timedelta
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-here-change-this-in-production'
+app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+app.config['SESSION_COOKIE_SECURE'] = True  # Railway uses HTTPS
+
+# ================================
+# 📁 RAILWAY-SPECIFIC CONFIGURATION
+# ================================
+
+# Get port from Railway environment variable or default to 5000
+PORT = int(os.environ.get('PORT', 5000))
+
+# Create downloads directory (Railway provides ephemeral storage)
+DOWNLOAD_PATH = Path('/tmp/yt-downloader')  # Use /tmp for Railway ephemeral storage
+DOWNLOAD_PATH.mkdir(parents=True, exist_ok=True)
 
 # ================================
 # 📦 SESSION-BASED PROGRESS STATE
@@ -161,7 +172,7 @@ def progress_hook(d, user_id, cancel_flag):
         }, user_id)
 
 def start_download(url, download_type, quality, user_id):
-    """Start download in background thread - UPDATED VERSION"""
+    """Start download in background thread - RAILWAY EDITION"""
     cancel_flag = get_cancel_flag(user_id)
     cancel_flag["cancel"] = False
     
@@ -173,24 +184,24 @@ def start_download(url, download_type, quality, user_id):
     use_preview = (progress_data.get("preview_loaded") and 
                   progress_data.get("preview_url") == url)
     
-    # 🚀 yt-dlp options (same as before)
+    # 🚀 yt-dlp options (Railway optimized)
     ydl_base_opts = {
         'progress_hooks': [wrapped_hook],
         'noplaylist': False,
-        'outtmpl': str(Path.home() / "Music" / "YT-Downloader" / "%(title).100s.%(ext)s"),
+        'outtmpl': str(DOWNLOAD_PATH / "%(title).100s.%(ext)s"),  # Use Railway's /tmp
         'quiet': False,
         'no_warnings': False,
         'ignoreerrors': True,
         'extract_flat': use_preview,
         'lazy_playlist': True,
-        'concurrent_fragment_downloads': 8,
-        'http_chunk_size': 5242880,
+        'concurrent_fragment_downloads': 4,  # Reduced for Railway limits
+        'http_chunk_size': 1048576,  # 1MB chunks for stability
         'continuedl': True,
         'noprogress': False,
-        'sleep_interval': 0,
-        'max_sleep_interval': 0,
-        'retry_sleep': 0.5,
-        'socket_timeout': 15,
+        'sleep_interval': 1,  # Added delay to prevent rate limiting
+        'max_sleep_interval': 5,
+        'retry_sleep': 1,
+        'socket_timeout': 30,
         'source_address': '0.0.0.0',
         'writethumbnail': False,
         'writeinfojson': False,
@@ -208,13 +219,16 @@ def start_download(url, download_type, quality, user_id):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': '*/*',
             'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate',
         },
-        'retries': 5,
-        'fragment_retries': 5,
+        'retries': 3,  # Reduced retries
+        'fragment_retries': 3,
         'skip_unavailable_fragments': True,
         'continue_dl': True,
         'cachedir': False,
         'no_cache_dir': True,
+        'nocheckcertificate': True,  # Important for Railway
+        'proxy': '',  # Explicitly disable proxy
     }
 
     if download_type == "audio":
@@ -243,12 +257,9 @@ def start_download(url, download_type, quality, user_id):
         }
 
     try:
-        output_dir = Path.home() / "Music" / "YT-Downloader"
-        output_dir.mkdir(parents=True, exist_ok=True)
-        
-        print(f"🎯 [{user_id[:8]}] Starting download: {url}")
+        print(f"🎯 [{user_id[:8]}] Starting download on Railway: {url}")
         print(f"📦 [{user_id[:8]}] Type: {download_type}, Quality: {quality}")
-        print(f"🚀 [{user_id[:8]}] Using fast preview: {use_preview}")
+        print(f"📁 [{user_id[:8]}] Download path: {DOWNLOAD_PATH}")
         
         # If we already have playlist info from preview, use it
         if use_preview:
@@ -266,6 +277,8 @@ def start_download(url, download_type, quality, user_id):
                 'extract_flat': False,
                 'lazy_playlist': False,
                 'ignoreerrors': True,
+                'nocheckcertificate': True,
+                'proxy': '',
             }) as ydl:
                 basic_info = ydl.extract_info(url, download=False)
                 
@@ -304,7 +317,7 @@ def start_download(url, download_type, quality, user_id):
                     }, user_id)
                     print(f"🎬 [{user_id[:8]}] Single video loaded (slow)")
         
-        # 🚀 START ACTUAL DOWNLOAD (same as before)
+        # 🚀 START ACTUAL DOWNLOAD
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
             
@@ -417,38 +430,32 @@ def new_session():
     get_session_id()
     return render_template("index.html")
 
-@app.route("/preview_playlist", methods=["POST"])
-def preview_playlist():
-    """Preview playlist instantly without full processing"""
-    user_id = get_session_id()
-    
-    url = request.json.get("url")
-    if not url:
-        return jsonify({"error": "Missing URL"}), 400
-    
+# ================================
+# 🗑️ CLEANUP ROUTE (For Railway ephemeral storage)
+# ================================
+@app.route("/cleanup", methods=["POST"])
+def cleanup():
+    """Clean up downloaded files (useful for Railway's ephemeral storage)"""
     try:
-        playlist_data = get_fast_playlist_info(url, user_id)
+        # Remove all files in download directory
+        for file_path in DOWNLOAD_PATH.glob("*"):
+            try:
+                if file_path.is_file():
+                    file_path.unlink()
+                    print(f"Cleaned up: {file_path}")
+            except Exception as e:
+                print(f"Failed to clean {file_path}: {e}")
         
-        if playlist_data:
-            # Store the playlist data for later download
-            update_progress_data({
-                "playlist_info": playlist_data["playlist_info"],
-                "total": playlist_data["total"],
-                "preview_loaded": True,
-                "preview_url": url
-            }, user_id)
-            
-            return jsonify({
-                "success": True,
-                "total": playlist_data["total"],
-                "playlist_info": playlist_data["playlist_info"],
-                "title": playlist_data["title"]
-            })
-        else:
-            return jsonify({"error": "Could not load playlist"}), 400
-            
+        return jsonify({"status": "success", "message": "Download directory cleaned"})
     except Exception as e:
-        return jsonify({"error": f"Error: {str(e)}"}), 500
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+# ================================
+# 🔍 HEALTH CHECK (Required by Railway)
+# ================================
+@app.route("/health")
+def health_check():
+    return jsonify({"status": "healthy", "service": "yt-downloader"})
 
 # ================================
 # 🚀 FAST PLAYLIST PREVIEW SUPPORT
@@ -467,6 +474,8 @@ def get_fast_playlist_info(url, user_id):
             'lazy_playlist': True,
             'ignoreerrors': True,
             'extract_flat': 'in_playlist',
+            'nocheckcertificate': True,
+            'proxy': '',
         }
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -519,11 +528,22 @@ def get_fast_playlist_info(url, user_id):
         return None
 
 # ================================
-# 🏁 RUN FLASK APP
+# 🏁 RUN FLASK APP FOR RAILWAY
 # ================================
 if __name__ == "__main__":
-    print("🚀 Starting YouTube Downloader - FIXED VERSION...")
-    print("📁 Downloads will be saved to:", Path.home() / "Music" / "YT-Downloader")
-    print("🔧 Fixed: Threading issues, session synchronization, progress tracking")
-    print("🌐 Ready for multiple users")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    print("🚀 Starting YouTube Downloader on Railway...")
+    print(f"📁 Downloads will be saved to: {DOWNLOAD_PATH}")
+    print(f"🌐 Server will run on port: {PORT}")
+    print("🔧 Railway Optimizations:")
+    print("   - Ephemeral storage at /tmp")
+    print("   - Reduced concurrent downloads")
+    print("   - Certificate checking disabled")
+    print("   - Health check endpoint")
+    print("   - Cleanup route for file management")
+    print("🚀 Ready for Railway deployment!")
+    
+    app.run(
+        debug=os.environ.get('DEBUG', 'False').lower() == 'true',
+        host='0.0.0.0',
+        port=PORT
+    )
