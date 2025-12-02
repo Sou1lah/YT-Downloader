@@ -17,22 +17,6 @@
             --progress-orange: #ffb347;
             --progress-green: #4caf50;
             --progress-red: #e67e80;
-            
-            /* Glow card custom properties */
-            --card-color: hsl(210deg 15% 18%);
-            --text-color: #a7b8a8;
-            --card-radius: 24px;
-            --card-width: 320px;
-            --border-width: 2px;
-            --hue-speed: 0.8;
-            --animation-speed: 6s;
-            --interaction-speed: 0.55s;
-            --glow-scale: 1.5;
-            --scale-factor: 1;
-            --glow-blur: 6;
-            --glow-opacity: 0.6;
-            --glow-radius: 100;
-            --glow-rotate-unit: 1deg;
         }
         
         * {
@@ -58,7 +42,9 @@
             overflow-x: hidden;
         }
 
-        /* Glowing card styles */
+        /* =============================== */
+        /* GLOWING PERSONAL CARD STYLES */
+        /* =============================== */
         @property --hue {
             syntax: "<number>";
             inherits: true;
@@ -117,254 +103,283 @@
             initial-value: 0;
         }
 
-        .glow-card {
+        .glowing-card-container {
             position: fixed;
-            bottom: 30px;
-            left: 30px;
-            width: var(--card-width);
-            width: min(280px, var(--card-width));
-            aspect-ratio: 1.5/1;
-            color: var(--ef-fg);
+            bottom: 25px;
+            right: 25px;
+            z-index: 999;
+            width: 280px;
+            height: 140px;
+            pointer-events: none;
+        }
+
+        .glowing-card {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 20px;
+            background: rgba(35, 42, 46, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(127, 187, 179, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            display: flex;
+            overflow: hidden;
+            pointer-events: auto;
+            transition: all 0.3s ease;
+            transform: translateY(0);
+        }
+
+        .glowing-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+            border-color: rgba(127, 187, 179, 0.4);
+        }
+
+        .glow-effect {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 20px;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        .glow-effect::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(
+                from 0deg,
+                transparent,
+                rgba(167, 192, 128, 0.2),
+                rgba(127, 187, 179, 0.3),
+                rgba(230, 126, 128, 0.2),
+                transparent
+            );
+            animation: rotateGlow 4s linear infinite;
+            filter: blur(20px);
+            opacity: 0.7;
+        }
+
+        @keyframes rotateGlow {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .profile-section {
+            width: 40%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+            border-right: 1px solid rgba(127, 187, 179, 0.1);
+        }
+
+        .profile-pic {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #7fbbb3, #a7c080);
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 100;
-            border-radius: var(--card-radius);
+            font-size: 28px;
+            color: #232a2e;
+            font-weight: bold;
+            margin-bottom: 10px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .profile-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--ef-accent);
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .info-section {
+            width: 60%;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .contact-info {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--ef-fg-muted);
+            transition: color 0.2s;
+        }
+
+        .contact-item:hover {
+            color: var(--ef-accent3);
+        }
+
+        .contact-item i {
+            font-size: 14px;
+            color: var(--ef-accent);
+            width: 16px;
+            text-align: center;
+        }
+
+        .contact-link {
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .contact-link:hover {
+            color: var(--ef-accent3);
+            transform: translateX(2px);
+        }
+
+        .tech-stack {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .tech-icon {
+            width: 22px;
+            height: 22px;
+            background: rgba(127, 187, 179, 0.1);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: var(--ef-accent3);
+            transition: all 0.2s;
+        }
+
+        .tech-icon:hover {
+            background: rgba(127, 187, 179, 0.2);
+            transform: translateY(-2px);
+        }
+
+        /* Toggle button for the card */
+        .card-toggle {
+            position: absolute;
+            top: -15px;
+            right: 10px;
+            background: var(--ef-accent3);
+            color: #232a2e;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
-            transition: transform 0.3s ease;
-            opacity: 0.9;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 1000;
+            transition: all 0.2s;
+            opacity: 0.7;
+            pointer-events: auto;
+        }
 
-            &:hover {
-                transform: translateY(-5px);
-                opacity: 1;
-                
-                > div {
-                    mix-blend-mode: darken;
-                    --text-color: var(--ef-accent);
-                    box-shadow: 0 0 calc(var(--white-shadow) * 1px)
-                        calc(var(--white-shadow) * 0.15px) rgba(167, 192, 128, 0.2);
-                    animation: shadow-pulse calc(var(--animation-speed) * 2) linear infinite;
-                    &:before {
-                        --bg-size: 15;
-                        animation-play-state: paused;
-                        transition: --bg-size var(--interaction-speed) ease;
-                    }
-                }
-                .glow {
-                    --glow-blur: 1.5;
-                    --glow-opacity: 0.6;
-                    --glow-scale: 2.5;
-                    --glow-radius: 0;
-                    --rotate: 900;
-                    --glow-rotate-unit: 0;
-                    --scale-factor: 1.25;
-                    animation-play-state: paused;
+        .card-toggle:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
 
-                    &:after {
-                        --glow-translate-y: 0;
-                        animation-play-state: paused;
-                        transition: --glow-translate-y 0s ease, --glow-blur 0.05s ease,
-                            --glow-opacity 0.05s ease, --glow-scale 0.05s ease,
-                            --glow-radius 0.05s ease;
-                    }
-                }
+        /* Hide/show animation */
+        .glowing-card-container.hidden {
+            transform: translateX(100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .glowing-card-container.hidden .glowing-card {
+            transform: translateX(100%);
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .glowing-card-container {
+                width: 250px;
+                height: 130px;
+                bottom: 20px;
+                right: 20px;
             }
 
-            &:before,
-            &:after {
-                content: "";
-                display: block;
-                position: absolute;
-                width: 100%;
-                height: 100%;
-                border-radius: var(--card-radius);
+            .profile-pic {
+                width: 60px;
+                height: 60px;
+                font-size: 24px;
             }
 
-            > div {
-                position: absolute;
-                width: 100%;
-                height: 100%;
-                background: var(--card-color);
-                border-radius: calc(calc(var(--card-radius) * 0.9));
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-weight: 800;
-                text-transform: uppercase;
-                font-stretch: 150%;
-                font-size: 14px;
-                font-size: clamp(12px, 1.5vmin, 18px);
-                color: var(--text-color);
-                padding: calc(var(--card-width) / 8);
-                letter-spacing: 0.5px;
-
-                span {
-                    display: inline-block;
-                    padding: 0.25em 0.4em;
-                    border-radius: 6px;
-                    background: var(--ef-accent3);
-                    color: var(--ef-bg);
-                    margin-right: 8px;
-                    font-weight: 900;
-                    font-size: 0.9em;
-                }
-
-                &:before {
-                    content: "";
-                    display: block;
-                    position: absolute;
-                    width: 100%;
-                    height: 100%;
-                    border-radius: calc(calc(var(--card-radius) * 0.9));
-                    box-shadow: 0 0 20px #1a1f1e;
-                    mix-blend-mode: color-burn;
-                    z-index: -1;
-                    background: hsl(210deg 15% 22%)
-                        radial-gradient(
-                            30% 30% at calc(var(--bg-x) * 1%) calc(var(--bg-y) * 1%),
-                            hsl(calc(calc(var(--hue) * var(--hue-speed)) * 1deg) 50% 70%)
-                                calc(0% * var(--bg-size)),
-                            hsl(calc(calc(var(--hue) * var(--hue-speed)) * 1deg) 45% 60%)
-                                calc(20% * var(--bg-size)),
-                            hsl(calc(calc(var(--hue) * var(--hue-speed)) * 1deg) 40% 50%)
-                                calc(40% * var(--bg-size)),
-                            transparent 100%
-                        );
-                    width: calc(100% + var(--border-width));
-                    height: calc(100% + var(--border-width));
-                    animation: hue-animation var(--animation-speed) linear infinite,
-                        rotate-bg var(--animation-speed) linear infinite;
-                    transition: --bg-size var(--interaction-speed) ease;
-                }
+            .profile-name {
+                font-size: 12px;
             }
 
-            .glow {
-                --glow-translate-y: 0;
-                display: block;
-                position: absolute;
-                width: calc(var(--card-width) / 5);
-                height: calc(var(--card-width) / 5);
-                animation: rotate var(--animation-speed) linear infinite;
-                transform: rotateZ(calc(var(--rotate) * var(--glow-rotate-unit)));
-                transform-origin: center;
-                border-radius: calc(var(--glow-radius) * 10px);
-                z-index: -1;
+            .contact-item {
+                font-size: 11px;
+            }
 
-                &:after {
-                    content: "";
-                    display: block;
-                    z-index: -2;
-                    filter: blur(calc(var(--glow-blur) * 10px));
-                    width: 130%;
-                    height: 130%;
-                    left: -15%;
-                    top: -15%;
-                    background: hsl(
-                        calc(calc(var(--hue) * var(--hue-speed)) * 1deg) 40% 50%
-                    );
-                    position: relative;
-                    border-radius: calc(var(--glow-radius) * 10px);
-                    animation: hue-animation var(--animation-speed) linear infinite;
-                    transform: scaleY(calc(var(--glow-scale) * var(--scale-factor) / 1.1))
-                        scaleX(calc(var(--glow-scale) * var(--scale-factor) * 1.2))
-                        translateY(calc(var(--glow-translate-y) * 1%));
-                    opacity: var(--glow-opacity);
-                }
+            .tech-icon {
+                width: 20px;
+                height: 20px;
+                font-size: 11px;
             }
         }
 
-        @keyframes shadow-pulse {
-            0%,
-            24%,
-            46%,
-            73%,
-            96% {
-                --white-shadow: 0.5;
+        @media (max-width: 480px) {
+            .glowing-card-container {
+                width: 220px;
+                height: 120px;
+                bottom: 15px;
+                right: 15px;
             }
-            12%,
-            28%,
-            41%,
-            63%,
-            75%,
-            82%,
-            98% {
-                --white-shadow: 2.5;
+
+            .profile-pic {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
             }
-            6%,
-            32%,
-            57% {
-                --white-shadow: 1.3;
+
+            .profile-name {
+                font-size: 11px;
             }
-            18%,
-            52%,
-            88% {
-                --white-shadow: 3.5;
+
+            .contact-item {
+                font-size: 10px;
+            }
+
+            .tech-icon {
+                width: 18px;
+                height: 18px;
+                font-size: 10px;
             }
         }
 
-        @keyframes rotate-bg {
-            0% {
-                --bg-x: 0;
-                --bg-y: 0;
-            }
-
-            25% {
-                --bg-x: 100;
-                --bg-y: 0;
-            }
-
-            50% {
-                --bg-x: 100;
-                --bg-y: 100;
-            }
-
-            75% {
-                --bg-x: 0;
-                --bg-y: 100;
-            }
-
-            100% {
-                --bg-x: 0;
-                --bg-y: 0;
-            }
-        }
-        @keyframes rotate {
-            from {
-                --rotate: -70;
-                --glow-translate-y: -65;
-            }
-
-            25% {
-                --glow-translate-y: -65;
-            }
-
-            50% {
-                --glow-translate-y: -65;
-            }
-
-            60%,
-            75% {
-                --glow-translate-y: -65;
-            }
-
-            85% {
-                --glow-translate-y: -65;
-            }
-
-            to {
-                --rotate: calc(360 - 70);
-                --glow-translate-y: -65;
-            }
-        }
-        @keyframes hue-animation {
-            0% {
-                --hue: 0;
-            }
-            100% {
-                --hue: 360;
-            }
-        }
-
+        /* =============================== */
+        /* EXISTING SITE STYLES */
+        /* =============================== */
         header {
             width: 100%;
             padding: 20px 0;
@@ -670,21 +685,13 @@
             border: 1px solid #a7c08040;
         }
 
-        /* Responsive design for glow card */
-        @media (max-width: 768px) {
-            .glow-card {
-                position: relative;
-                bottom: auto;
-                left: auto;
-                margin: 20px auto;
-                width: 250px;
-            }
-            
-            .container {
-                margin-bottom: 40px;
-            }
+        /* Font Awesome icons */
+        .fa-brands, .fa-solid {
+            font-family: "Font Awesome 6 Brands", "Font Awesome 6 Free";
         }
     </style>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <header>
@@ -751,15 +758,50 @@
         </div>
     </div>
 
-    <!-- Glow Card at Bottom Left Corner -->
-    <div class="glow-card" role="button" onclick="toggleGlowCard()">
-        <span class="glow"></span>
-        <div>
-            <span>cool</span>Glowing Downloader
+    <!-- =============================== -->
+    <!-- GLOWING PERSONAL CARD -->
+    <!-- =============================== -->
+    <div class="glowing-card-container" id="personalCard">
+        <button class="card-toggle" id="cardToggle">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="glow-effect"></div>
+        <div class="glowing-card">
+            <div class="profile-section">
+                <div class="profile-pic">DC</div>
+                <div class="profile-name">Dev Creator</div>
+            </div>
+            <div class="info-section">
+                <div class="contact-info">
+                    <a href="https://github.com/yourusername" target="_blank" class="contact-link">
+                        <i class="fab fa-github"></i>
+                        <span>GitHub</span>
+                    </a>
+                    <a href="mailto:dev@example.com" class="contact-link">
+                        <i class="fas fa-envelope"></i>
+                        <span>Email</span>
+                    </a>
+                    <a href="https://linkedin.com/in/yourprofile" target="_blank" class="contact-link">
+                        <i class="fab fa-linkedin"></i>
+                        <span>LinkedIn</span>
+                    </a>
+                </div>
+                <div class="tech-stack">
+                    <div class="tech-icon" title="Python"><i class="fab fa-python"></i></div>
+                    <div class="tech-icon" title="JavaScript"><i class="fab fa-js"></i></div>
+                    <div class="tech-icon" title="HTML5"><i class="fab fa-html5"></i></div>
+                    <div class="tech-icon" title="CSS3"><i class="fab fa-css3-alt"></i></div>
+                    <div class="tech-icon" title="Flask"><i class="fas fa-flask"></i></div>
+                    <div class="tech-icon" title="Git"><i class="fab fa-git-alt"></i></div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
+        // =============================== //
+        // EXISTING SITE JAVASCRIPT //
+        // =============================== //
         // DOM Elements
         const downloadForm = document.getElementById("download-form");
         const downloadBtn = document.getElementById("download-btn");
@@ -778,21 +820,46 @@
         let previewTimeout = null;
         let currentPreviewUrl = '';
 
-        // CSS Properties detection
-        if (typeof window.CSS.registerProperty === 'function') {
-            console.log('CSS.registerProperty supported 🎉');
-        } else {
-            console.log('CSS.registerProperty not supported - using fallback animations');
-            // Fallback for browsers without CSS.registerProperty
-            document.querySelectorAll('.glow-card .glow').forEach(glow => {
-                glow.style.animation = 'none';
-            });
+        // =============================== //
+        // GLOWING CARD JAVASCRIPT //
+        // =============================== //
+        const personalCard = document.getElementById('personalCard');
+        const cardToggle = document.getElementById('cardToggle');
+
+        // Toggle card visibility
+        function togglePersonalCard() {
+            personalCard.classList.toggle('hidden');
+            const isHidden = personalCard.classList.contains('hidden');
+            cardToggle.innerHTML = isHidden ? '<i class="fas fa-plus"></i>' : '<i class="fas fa-times"></i>';
+            
+            // Save preference to localStorage
+            localStorage.setItem('personalCardHidden', isHidden);
         }
 
-        // Toggle glow card visibility
-        function toggleGlowCard() {
-            const card = document.querySelector('.glow-card');
-            card.style.opacity = card.style.opacity === '0.3' ? '0.9' : '0.3';
+        // Initialize card state from localStorage
+        function initPersonalCard() {
+            const isHidden = localStorage.getItem('personalCardHidden') === 'true';
+            if (isHidden) {
+                personalCard.classList.add('hidden');
+                cardToggle.innerHTML = '<i class="fas fa-plus"></i>';
+            }
+            
+            // Add event listener to toggle button
+            cardToggle.addEventListener('click', togglePersonalCard);
+            
+            // Auto-hide card after 10 seconds on first visit
+            const firstVisit = !localStorage.getItem('cardAutoHidden');
+            if (firstVisit) {
+                setTimeout(() => {
+                    if (!personalCard.classList.contains('hidden')) {
+                        personalCard.classList.add('hidden');
+                        cardToggle.innerHTML = '<i class="fas fa-plus"></i>';
+                        localStorage.setItem('cardAutoHidden', 'true');
+                    }
+                }, 10000);
+            }
+            
+            console.log('Glowing personal card initialized');
         }
 
         // Filter quality options based on download type
@@ -1132,6 +1199,7 @@
             filterQualityOptions();
             setupTabs();
             resetUI();
+            initPersonalCard(); // Initialize the glowing personal card
             
             // Set up event listeners
             downloadType.addEventListener("change", filterQualityOptions);
@@ -1142,7 +1210,7 @@
                 previewPlaylist(e.target.value);
             });
             
-            console.log("YouTube Downloader UI initialized - with instant preview!");
+            console.log("YouTube Downloader UI initialized with glowing personal card!");
         }
 
         // Start the application when DOM is loaded
